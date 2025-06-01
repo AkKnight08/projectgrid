@@ -1,64 +1,72 @@
 import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Menu, Transition } from '@headlessui/react'
-import { Bars3Icon, BellIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { BellIcon } from '@heroicons/react/24/outline'
 import { useUserStore } from '../../store/userStore'
 
-const Navbar = ({ onMenuClick }) => {
+const navLinks = [
+  { name: 'Dashboard', to: '/' },
+  { name: 'All Projects', to: '/projects' },
+  { name: 'Calendar', to: '/calendar' },
+  { name: 'Analytics', to: '/analytics' },
+  { name: 'Settings', to: '/settings' },
+]
+
+const Navbar = () => {
   const { user, logout } = useUserStore()
+  const location = useLocation()
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow">
+    <nav className="bg-white dark:bg-gray-800 shadow sticky top-0 z-50 w-full">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between">
-          <div className="flex">
-            <button
-              type="button"
-              className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden"
-              onClick={onMenuClick}
-            >
-              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-            </button>
-            
-            <div className="flex flex-shrink-0 items-center">
-              <Link to="/" className="text-2xl font-bold text-primary-600">
-                TaskGrid
-              </Link>
-            </div>
-            
-            <div className="hidden lg:ml-6 lg:flex lg:items-center">
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </div>
-                <input
-                  type="text"
-                  className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                  placeholder="Search projects..."
-                />
-              </div>
+        <div className="flex h-16 justify-between items-center">
+          <div className="flex items-center space-x-8">
+            <Link to="/" className="text-xl font-bold text-primary-600">
+              FlowManager
+            </Link>
+            <div className="hidden md:flex space-x-4">
+              {navLinks.map(link => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                    location.pathname === link.to
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-primary-700'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
             </div>
           </div>
-          
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/projects/new"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              + New Project
+            </Link>
             <button
               type="button"
               className="rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             >
               <BellIcon className="h-6 w-6" aria-hidden="true" />
             </button>
-
-            <Menu as="div" className="relative ml-3">
-              <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                <span className="sr-only">Open user menu</span>
-                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
-                </div>
-              </Menu.Button>
-              
+            <Menu as="div" className="relative">
+              <div>
+                <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                  <span className="sr-only">Open user menu</span>
+                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-primary-600 font-medium">
+                      {user?.displayName?.[0]?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                </Menu.Button>
+              </div>
               <Transition
                 as={Fragment}
-                enter="transition ease-out duration-100"
+                enter="transition ease-out duration-200"
                 enterFrom="transform opacity-0 scale-95"
                 enterTo="transform opacity-100 scale-100"
                 leave="transition ease-in duration-75"
@@ -70,7 +78,7 @@ const Navbar = ({ onMenuClick }) => {
                     {({ active }) => (
                       <Link
                         to="/profile"
-                        className={`${
+                        className={`$${
                           active ? 'bg-gray-100' : ''
                         } block px-4 py-2 text-sm text-gray-700`}
                       >
@@ -82,7 +90,7 @@ const Navbar = ({ onMenuClick }) => {
                     {({ active }) => (
                       <Link
                         to="/settings"
-                        className={`${
+                        className={`$${
                           active ? 'bg-gray-100' : ''
                         } block px-4 py-2 text-sm text-gray-700`}
                       >
@@ -94,7 +102,7 @@ const Navbar = ({ onMenuClick }) => {
                     {({ active }) => (
                       <button
                         onClick={logout}
-                        className={`${
+                        className={`$${
                           active ? 'bg-gray-100' : ''
                         } block w-full px-4 py-2 text-left text-sm text-gray-700`}
                       >
