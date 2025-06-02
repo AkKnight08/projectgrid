@@ -8,6 +8,7 @@ import Profile from './pages/Profile'
 import NewProject from './pages/NewProject'
 import CalendarView from './pages/CalendarView'
 import Analytics from './pages/Analytics'
+import Settings from './pages/Settings'
 import { useEffect } from 'react'
 
 const PrivateRoute = ({ children }) => {
@@ -66,6 +67,7 @@ const App = () => {
           <Route path="calendar" element={<CalendarView />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
