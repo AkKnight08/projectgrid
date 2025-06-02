@@ -4,6 +4,46 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Search projects
+router.get('/search', auth, async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    console.log('Searching projects with query:', q);
+    console.log('User ID:', req.user._id);
+
+    const projects = await Project.find({
+      $and: [
+        {
+          $or: [
+            { name: { $regex: q, $options: 'i' } },
+            { description: { $regex: q, $options: 'i' } }
+          ]
+        },
+        {
+          $or: [
+            { owner: req.user._id },
+            { 'members.user': req.user._id }
+          ]
+        }
+      ]
+    })
+    .select('name description status tags _id')
+    .limit(10)
+    .sort({ updatedAt: -1 });
+
+    console.log('Found projects:', projects.length);
+    res.json(projects);
+  } catch (error) {
+    console.error('Error searching projects:', error);
+    res.status(500).json({ message: 'Error searching projects' });
+  }
+});
+
 // Create project
 router.post('/', auth, async (req, res) => {
   try {

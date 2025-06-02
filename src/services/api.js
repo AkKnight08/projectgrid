@@ -70,6 +70,16 @@ export const projectsAPI = {
     }
   },
 
+  search: async (query) => {
+    try {
+      const response = await api.get(`/projects/search?q=${encodeURIComponent(query)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching projects:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
   getById: async (id) => {
     try {
       const response = await api.get(`/projects/${id}`);
