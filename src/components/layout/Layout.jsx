@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Navbar from '../Navbar'
 import Sidebar from './Sidebar'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 const Layout = () => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -12,15 +13,22 @@ const Layout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar onSearch={handleSearch} />
-      <div className="flex h-[calc(100vh-60px)]">
-        <div className="hidden lg:block lg:w-64">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+      <div className="flex h-screen relative">
+        <div className="hidden lg:flex lg:flex-col lg:w-64 flex-shrink-0">
+          <div className="h-16 flex items-center justify-center">
+            <Link to="/" className="text-2xl font-bold tracking-wider uppercase">
+              Plan<span className="text-white/80 italic font-normal">Pro</span>
+            </Link>
+          </div>
           <Sidebar />
         </div>
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet context={{ searchQuery }} />
-        </main>
+        <div className="flex-1 flex flex-col">
+          <Navbar onSearch={handleSearch} />
+          <main className="flex-1 overflow-y-auto p-6">
+            <Outlet context={{ searchQuery }} />
+          </main>
+        </div>
       </div>
     </div>
   )

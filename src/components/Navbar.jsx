@@ -91,7 +91,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="site-title-container">
         <Link to="/" className="site-title-link">
-          Plan<span className="accent">Pro</span>
+          Plan<span className="accent italic">Pro</span>
         </Link>
       </div>
 
