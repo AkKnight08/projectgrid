@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import QuickStats from '../components/QuickStats';
 import ProjectGrid from '../components/ProjectGrid';
 import DashboardStats from '../components/DashboardStats';
+import { useProjectStore } from '../store/projectStore';
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const { projects, fetchProjects, isLoading } = useProjectStore();
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   return (
     <div className="flex-1 bg-gray-100">
@@ -73,12 +79,19 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Projects Grid */}
           <div className="lg:col-span-2">
-            <ProjectGrid
-              searchQuery={searchQuery}
-              viewMode={viewMode}
-              filter={filter}
-              sortBy={sortBy}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <ProjectGrid
+                projects={projects}
+                searchQuery={searchQuery}
+                viewMode={viewMode}
+                filter={filter}
+                sortBy={sortBy}
+              />
+            )}
           </div>
 
           {/* Stats & Activity */}
