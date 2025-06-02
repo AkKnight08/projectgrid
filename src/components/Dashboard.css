@@ -1,0 +1,149 @@
+/* GRID CONTAINER */
+.layout {
+  padding: 12px;
+  background-color: transparent;
+}
+
+.layout.show-grid {
+  background-image:
+    repeating-linear-gradient(to right, rgba(59,130,246,0.1) 0px, rgba(59,130,246,0.1) 1px, transparent 1px, transparent 32px),
+    repeating-linear-gradient(to bottom, rgba(59,130,246,0.1) 0px, rgba(59,130,246,0.1) 1px, transparent 1px, transparent 32px);
+}
+
+/* CARD & DRAGGABLE */
+.react-grid-item > .react-draggable {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+.react-grid-item.resizing > .react-draggable,
+.react-grid-item.dragging > .react-draggable {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  z-index: 100;
+  opacity: 0.95;
+}
+
+/* DRAG HANDLE */
+.drag-handle {
+  cursor: move;
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.drag-handle:hover {
+  background-color: #eef2ff;
+}
+
+.locked .drag-handle {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.drag-handle .title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+/* TASK PREVIEW & PROGRESS */
+.card-content {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.task-preview {
+  margin-bottom: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.task-item:last-child {
+  margin-bottom: 0;
+}
+
+.task-item.done .task-text {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.task-text {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.progress-container {
+  margin-top: auto;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.progress-bar {
+  margin-top: 0.25rem;
+  height: 0.5rem;
+  background-color: #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease-in-out;
+}
+
+/* RESIZE HANDLES */
+.react-resizable-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  opacity: 0.7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.react-resizable-handle:hover {
+  opacity: 1;
+  background-color: #2563eb;
+}
+
+.react-resizable-handle-se { bottom: 4px; right: 4px; cursor: se-resize; }
+.react-resizable-handle-sw { bottom: 4px; left: 4px; cursor: sw-resize; }
+.react-resizable-handle-ne { top: 4px; right: 4px; cursor: ne-resize; }
+.react-resizable-handle-nw { top: 4px; left: 4px; cursor: nw-resize; }
+
+/* RESPONSIVE TWEAKS */
+@media (max-width: 768px) {
+  .layout { padding: 8px; }
+  .drag-handle { padding: 0.5rem; }
+  .card-content { padding: 0.5rem; }
+  .task-text { font-size: 0.75rem; }
+  .progress-label { font-size: 0.75rem; }
+} 
