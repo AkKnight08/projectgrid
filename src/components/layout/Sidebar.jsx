@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom'
 import {
   HomeIcon,
   FolderIcon,
@@ -10,12 +10,11 @@ import {
   UserIcon,
   PlusIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 
 const navItems = [
   { path: '/', icon: HomeIcon, label: 'Dashboard' },
-  { path: '/projects', icon: FolderIcon, label: 'Projects' },
   { path: '/calendar', icon: CalendarIcon, label: 'Calendar' },
   { path: '/analytics', icon: ChartBarIcon, label: 'Analytics' },
   { path: '/tasks', icon: ClipboardDocumentListIcon, label: 'Tasks' },
@@ -23,38 +22,68 @@ const navItems = [
   { path: '/settings', icon: Cog6ToothIcon, label: 'Settings' },
 ]
 
+const MIN_WIDTH = 200
+const MAX_WIDTH = 300
+
 const Sidebar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const sidebarRef = useRef(null)
+  const userMenuRef = useRef(null)
   // Dummy user info
   const user = { name: 'Akshay Kumar', role: 'Admin' }
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed)
+  }
+
+  const handleUserMenuClick = () => {
+    setIsUserMenuOpen(!isUserMenuOpen)
+  }
+
+  const handleLogout = () => {
+    // Add your logout logic here
+    navigate('/auth')
+  }
+
   return (
     <aside
-      className={`fixed top-0 left-0 h-screen z-40 transition-all duration-300 font-inter flex flex-col justify-between
-        ${isCollapsed ? 'w-16' : 'w-[240px]'}
+      ref={sidebarRef}
+      className={`fixed top-[50px] left-0 h-[calc(100vh-50px)] z-30 transition-all duration-300 font-inter flex flex-col justify-between
+        ${isCollapsed ? 'w-16 overflow-x-hidden' : 'w-[250px]'}
         bg-charcoalDeep border-r border-slateDark`}
     >
       {/* Top Section */}
-      <div>
-        {/* Logo/App Name */}
-        <div className={`flex items-center justify-center ${isCollapsed ? 'mt-6' : 'mt-8'} mb-2`}>
-          <span className={`text-white font-semibold ${isCollapsed ? 'text-xl' : 'text-[1.5rem]'}`}>TG</span>
-        </div>
+      <div className={`flex-1 overflow-y-auto relative ${isCollapsed ? 'pr-0' : 'pr-6'}`}>
         {/* Collapse Toggle */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="mx-auto flex items-center justify-center w-8 h-8 rounded hover:bg-slateDark transition-colors"
+          onClick={toggleCollapse}
+          className="absolute right-3 top-3 flex items-center justify-center w-6 h-6 rounded-md bg-slateDark/50 hover:bg-slateDark transition-colors z-10"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <ChevronRightIcon className="h-5 w-5 text-textMuted" />
+            <ChevronRightIcon className="h-3.5 w-3.5 text-white opacity-70 hover:opacity-100 transition-opacity" />
           ) : (
-            <ChevronLeftIcon className="h-5 w-5 text-textMuted" />
+            <ChevronLeftIcon className="h-3.5 w-3.5 text-white opacity-70 hover:opacity-100 transition-opacity" />
           )}
         </button>
         {/* Main Navigation */}
-        <nav className="mt-10 flex flex-col space-y-1">
+        <nav className="mt-12 flex flex-col space-y-1">
           {navItems.map(item => {
             const isActive = location.pathname === item.path
             return (
@@ -62,11 +91,11 @@ const Sidebar = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `group flex items-center gap-4 h-12 px-6 text-[0.875rem] font-medium rounded-l-lg transition-colors relative
-                  ${isActive || isActive
+                  `group flex items-center gap-4 h-12 text-[0.875rem] font-medium rounded-l-lg transition-colors relative
+                  ${isActive
                     ? 'bg-[#3B3B5A] text-white border-l-4 border-accentBlue'
                     : 'text-textSecondary hover:bg-slateDark hover:text-white'}
-                  ${isCollapsed ? 'justify-center px-0' : ''}`
+                  ${isCollapsed ? 'justify-center px-0' : 'px-6'}`
                 }
                 tabIndex={0}
                 aria-label={item.label}
@@ -83,44 +112,21 @@ const Sidebar = () => {
         {/* Section Divider */}
         <div className="h-px bg-slateDark my-4 mx-6" />
         {/* Quick Actions */}
-        <div className={`flex flex-col space-y-2 ${isCollapsed ? 'items-center' : 'px-4'}`}>
-          <button
-            className={`flex items-center justify-center w-full h-10 bg-accentBlue text-white font-semibold rounded-md text-[0.875rem] hover:bg-[#2563EB] transition-colors ${isCollapsed ? 'w-10' : ''}`}
+        <div className={`flex flex-col space-y-2 ${isCollapsed ? 'items-center px-0' : 'px-4'}`}>
+          <Link
+            to="/projects/new"
+            className={`group flex items-center justify-center w-full h-10 bg-[#2A2A3B] border border-[#3A3A4F] text-white font-medium rounded-md text-[0.875rem] hover:bg-[#3B3B5A] hover:border-accentBlue/50 transition-all duration-200 ${isCollapsed ? 'w-10 px-0' : ''}`}
             tabIndex={0}
             aria-label="New Project"
           >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            {!isCollapsed && <span>New Project</span>}
-          </button>
-          <button
-            className={`flex items-center justify-center w-full h-10 bg-accentEmerald text-white font-semibold rounded-md text-[0.875rem] hover:bg-[#047857] transition-colors ${isCollapsed ? 'w-10' : ''}`}
-            tabIndex={0}
-            aria-label="New Task"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            {!isCollapsed && <span>New Task</span>}
-          </button>
-        </div>
-      </div>
-      {/* Bottom Section: User Profile */}
-      <div className={`mb-6 ${isCollapsed ? 'px-2' : 'px-4'}`}>
-        <button
-          className={`w-full flex items-center h-16 rounded-md hover:bg-slateDark transition-colors px-2 ${isCollapsed ? 'justify-center' : ''}`}
-          tabIndex={0}
-          aria-label="User menu"
-        >
-          <div className="h-8 w-8 rounded-full border-2 border-[#3A3A4F] flex items-center justify-center bg-accentBlue text-white font-medium">
-            {user.name[0]}
-          </div>
-          {!isCollapsed && (
-            <div className="ml-3 flex flex-col items-start">
-              <span className="text-[0.875rem] font-medium text-white">{user.name}</span>
-              <span className="text-[0.75rem] text-textMuted">{user.role}</span>
+            <div className={`flex items-center ${isCollapsed ? 'gap-0' : 'gap-2'}`}>
+              <div className="h-6 w-6 rounded-md bg-accentBlue/10 flex items-center justify-center group-hover:bg-accentBlue/20 transition-colors">
+                <PlusIcon className="h-4 w-4 text-accentBlue" />
+              </div>
+              {!isCollapsed && <span className="text-textSecondary group-hover:text-white transition-colors">New Project</span>}
             </div>
-          )}
-          <span className="ml-auto text-textMuted text-xs">⌄</span>
-        </button>
-        {/* Dropdown (not implemented for brevity, but should match navbar style) */}
+          </Link>
+        </div>
       </div>
     </aside>
   )
