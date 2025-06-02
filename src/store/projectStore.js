@@ -16,17 +16,22 @@ export const useProjectStore = create(
       
       fetchProjects: async () => {
         try {
-          set({ isLoading: true, error: null })
+          set({ isLoading: true, error: null, projects: [] })
           console.log('Fetching projects...')
           const response = await projectsAPI.getAll()
           console.log('Fetched projects:', response)
-          set({ projects: response || [], isLoading: false })
-          console.log('Updated projects in state:', response || [])
+          if (!response || !Array.isArray(response)) {
+            console.error('Invalid response format:', response)
+            throw new Error('Invalid response format from server')
+          }
+          set({ projects: response, isLoading: false })
+          console.log('Updated projects in state:', response)
         } catch (error) {
           console.error('Error fetching projects:', error)
           set({ 
             error: error.response?.data?.message || 'Failed to fetch projects',
-            isLoading: false 
+            isLoading: false,
+            projects: [] // Clear projects on error
           })
         }
       },

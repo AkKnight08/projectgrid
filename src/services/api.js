@@ -18,17 +18,36 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log('Making API request:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL
+    });
     return config;
   },
   (error) => {
+    console.error('API request error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   (error) => {
+    console.error('API response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
     if (error.response?.status === 401) {
       // Clear token and redirect to auth page
       localStorage.removeItem(TOKEN_KEY);
