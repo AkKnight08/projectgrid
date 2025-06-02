@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useProjectStore } from '../store/projectStore'
 import { useTaskStore } from '../store/taskStore'
+import { useTheme } from '../context/ThemeContext'
+import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors'
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -39,6 +41,7 @@ const PRIORITY_COLORS = {
 const CalendarView = () => {
   const { projects = [], fetchProjects, isLoading: projectsLoading, error: projectsError } = useProjectStore()
   const { tasks = [], fetchTasks, isLoading: tasksLoading, error: tasksError } = useTaskStore()
+  const { theme } = useTheme()
   
   const [currentDate, setCurrentDate] = useState(new Date())
   const [currentView, setCurrentView] = useState(VIEW_TYPES.MONTH)
@@ -55,6 +58,24 @@ const CalendarView = () => {
   // Generate years for dropdown (10 years before and after current year)
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i)
+
+  // Get colors based on current theme
+  const colors = theme === 'dark' ? DARK_MODE_COLORS : {
+    PAGE_BG: BACKGROUND_COLORS.MAIN,
+    PANEL_BG: '#FFFFFF',
+    CARD_INNER_BG: '#FFFFFF',
+    BORDER: '#E5E5E5',
+    TEXT_PRIMARY: '#1A1A1A',
+    TEXT_SECONDARY: '#666666',
+    TEXT_DISABLED: '#999999',
+    ACCENT_PURPLE: '#7C3AED',
+    ACCENT_TEAL: '#0D9488',
+    ACCENT_ORANGE: '#D97706',
+    ACCENT_RED: '#DC2626',
+    ACCENT_GREEN: '#059669',
+    ICON_DEFAULT: '#666666',
+    ICON_HOVER: '#1A1A1A'
+  }
 
   const handleYearChange = (e) => {
     const newYear = parseInt(e.target.value)
@@ -145,29 +166,29 @@ const CalendarView = () => {
         <div className="flex items-center">
           <button
             onClick={goToPrevious}
-            className="p-2 hover:bg-gray-100 rounded-l-md border border-gray-300"
+            className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-l-md border border-gray-300 dark:border-gray-600`}
             title="Previous Month"
           >
-            <ChevronLeftIcon className="h-5 w-5" />
+            <ChevronLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </button>
           <button
             onClick={goToNext}
-            className="p-2 hover:bg-gray-100 rounded-r-md border-t border-r border-b border-gray-300"
+            className={`p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-r-md border-t border-r border-b border-gray-300 dark:border-gray-600`}
             title="Next Month"
           >
-            <ChevronRightIcon className="h-5 w-5" />
+            <ChevronRightIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-semibold">
+            <h2 className={`text-xl font-semibold text-[${colors.TEXT_PRIMARY}]`}>
               {format(currentDate, 'MMMM')}
             </h2>
             <select
               value={currentDate.getFullYear()}
               onChange={handleYearChange}
-              className="text-xl font-semibold bg-transparent border-none focus:ring-0 focus:outline-none cursor-pointer hover:text-primary-600"
+              className={`text-xl font-semibold bg-transparent border-none focus:ring-0 focus:outline-none cursor-pointer text-[${colors.TEXT_PRIMARY}] hover:text-[${colors.ACCENT_PURPLE}]`}
             >
               {years.map(year => (
                 <option key={year} value={year}>
@@ -178,7 +199,7 @@ const CalendarView = () => {
           </div>
           <button
             onClick={goToToday}
-            className="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"
+            className={`px-3 py-1 text-sm bg-[${colors.ACCENT_PURPLE}] text-white rounded-md hover:bg-opacity-90`}
           >
             Today
           </button>
@@ -188,36 +209,36 @@ const CalendarView = () => {
       <div className="flex items-center space-x-2">
         <button
           onClick={() => setCurrentView(VIEW_TYPES.MONTH)}
-          className={`p-2 rounded-md ${currentView === VIEW_TYPES.MONTH ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'}`}
+          className={`p-2 rounded-md ${currentView === VIEW_TYPES.MONTH ? `bg-[${colors.ACCENT_PURPLE}] text-white` : `text-[${colors.TEXT_SECONDARY}] hover:bg-gray-100 dark:hover:bg-gray-700`}`}
         >
           <CalendarIcon className="h-5 w-5" />
         </button>
         <button
           onClick={() => setCurrentView(VIEW_TYPES.WEEK)}
-          className={`p-2 rounded-md ${currentView === VIEW_TYPES.WEEK ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'}`}
+          className={`p-2 rounded-md ${currentView === VIEW_TYPES.WEEK ? `bg-[${colors.ACCENT_PURPLE}] text-white` : `text-[${colors.TEXT_SECONDARY}] hover:bg-gray-100 dark:hover:bg-gray-700`}`}
         >
           <ViewColumnsIcon className="h-5 w-5" />
         </button>
         <button
           onClick={() => setCurrentView(VIEW_TYPES.DAY)}
-          className={`p-2 rounded-md ${currentView === VIEW_TYPES.DAY ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'}`}
+          className={`p-2 rounded-md ${currentView === VIEW_TYPES.DAY ? `bg-[${colors.ACCENT_PURPLE}] text-white` : `text-[${colors.TEXT_SECONDARY}] hover:bg-gray-100 dark:hover:bg-gray-700`}`}
         >
           <ClockIcon className="h-5 w-5" />
         </button>
         <button
           onClick={() => setCurrentView(VIEW_TYPES.LIST)}
-          className={`p-2 rounded-md ${currentView === VIEW_TYPES.LIST ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'}`}
+          className={`p-2 rounded-md ${currentView === VIEW_TYPES.LIST ? `bg-[${colors.ACCENT_PURPLE}] text-white` : `text-[${colors.TEXT_SECONDARY}] hover:bg-gray-100 dark:hover:bg-gray-700`}`}
         >
           <ListBulletIcon className="h-5 w-5" />
         </button>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-md ${showFilters ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100'}`}
+          className={`p-2 rounded-md ${showFilters ? `bg-[${colors.ACCENT_PURPLE}] text-white` : `text-[${colors.TEXT_SECONDARY}] hover:bg-gray-100 dark:hover:bg-gray-700`}`}
         >
           <FunnelIcon className="h-5 w-5" />
         </button>
         <button
-          className="p-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          className={`p-2 bg-[${colors.ACCENT_PURPLE}] text-white rounded-md hover:bg-opacity-90`}
           title="Add New Project"
         >
           <PlusIcon className="h-5 w-5" />
@@ -229,16 +250,16 @@ const CalendarView = () => {
   // Render filter panel
   const renderFilterPanel = () => (
     <div className={`mb-6 transition-all duration-200 ${showFilters ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className={`bg-[${colors.PANEL_BG}] rounded-lg shadow p-4 border border-[${colors.BORDER}]`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className={`block text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-1`}>Status</label>
             <select
               multiple
               value={filters.status}
               onChange={(e) => handleFilterChange('status', Array.from(e.target.selectedOptions, option => option.value))}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className={`mt-1 block w-full rounded-md border-[${colors.BORDER}] shadow-sm focus:border-[${colors.ACCENT_PURPLE}] focus:ring-[${colors.ACCENT_PURPLE}] bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}
             >
               <option value="not started">Not Started</option>
               <option value="active">Active</option>
@@ -250,12 +271,12 @@ const CalendarView = () => {
 
           {/* Priority Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <label className={`block text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-1`}>Priority</label>
             <select
               multiple
               value={filters.priority}
               onChange={(e) => handleFilterChange('priority', Array.from(e.target.selectedOptions, option => option.value))}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              className={`mt-1 block w-full rounded-md border-[${colors.BORDER}] shadow-sm focus:border-[${colors.ACCENT_PURPLE}] focus:ring-[${colors.ACCENT_PURPLE}] bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}
             >
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -266,19 +287,19 @@ const CalendarView = () => {
 
           {/* Date Range Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <label className={`block text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-1`}>Date Range</label>
             <div className="flex space-x-2">
               <input
                 type="date"
                 value={filters.dateRange.start || ''}
                 onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, start: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className={`mt-1 block w-full rounded-md border-[${colors.BORDER}] shadow-sm focus:border-[${colors.ACCENT_PURPLE}] focus:ring-[${colors.ACCENT_PURPLE}] bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}
               />
               <input
                 type="date"
                 value={filters.dateRange.end || ''}
                 onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, end: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                className={`mt-1 block w-full rounded-md border-[${colors.BORDER}] shadow-sm focus:border-[${colors.ACCENT_PURPLE}] focus:ring-[${colors.ACCENT_PURPLE}] bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}
               />
             </div>
           </div>
@@ -291,15 +312,15 @@ const CalendarView = () => {
               id="showMilestonesOnly"
               checked={filters.showMilestonesOnly}
               onChange={(e) => handleFilterChange('showMilestonesOnly', e.target.checked)}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              className={`h-4 w-4 text-[${colors.ACCENT_PURPLE}] focus:ring-[${colors.ACCENT_PURPLE}] border-[${colors.BORDER}] rounded`}
             />
-            <label htmlFor="showMilestonesOnly" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="showMilestonesOnly" className={`ml-2 block text-sm text-[${colors.TEXT_PRIMARY}]`}>
               Show Milestones Only
             </label>
           </div>
           <button
             onClick={clearFilters}
-            className="text-sm text-primary-600 hover:text-primary-700"
+            className={`text-sm text-[${colors.ACCENT_PURPLE}] hover:text-opacity-80`}
           >
             Clear Filters
           </button>
@@ -318,10 +339,10 @@ const CalendarView = () => {
     console.log('Current month:', format(monthStart, 'MMMM yyyy'));
 
     return (
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
+      <div className={`grid grid-cols-7 gap-px bg-[${colors.BORDER}] rounded-lg overflow-hidden`}>
         {/* Day headers */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="bg-gray-100 p-2 text-center text-sm font-medium text-gray-700">
+          <div key={day} className={`bg-[${colors.PANEL_BG}] p-2 text-center text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>
             {day}
           </div>
         ))}
@@ -350,23 +371,23 @@ const CalendarView = () => {
           return (
             <div
               key={day.toString()}
-              className={`min-h-[100px] p-2 bg-white ${
-                !isCurrentMonth ? 'text-gray-400' : ''
-              } ${isCurrentDay ? 'ring-2 ring-primary-500' : ''}`}
+              className={`min-h-[100px] p-2 bg-[${colors.PANEL_BG}] ${
+                !isCurrentMonth ? `text-[${colors.TEXT_DISABLED}]` : ''
+              } ${isCurrentDay ? `ring-2 ring-[${colors.ACCENT_PURPLE}]` : ''}`}
             >
-              <div className="text-sm font-medium mb-1">{format(day, 'd')}</div>
+              <div className={`text-sm font-medium mb-1 text-[${colors.TEXT_PRIMARY}]`}>{format(day, 'd')}</div>
               <div className="space-y-1">
                 {dayProjects.slice(0, 3).map(project => (
                   <div
                     key={project._id}
-                    className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-800'}`}
+                    className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}`}
                     title={`${project.name} (${project.status})`}
                   >
                     {project.name}
                   </div>
                 ))}
                 {dayProjects.length > 3 && (
-                  <div className="text-xs text-primary-600 cursor-pointer">
+                  <div className={`text-xs text-[${colors.ACCENT_PURPLE}] cursor-pointer`}>
                     +{dayProjects.length - 3} more
                   </div>
                 )}
@@ -384,7 +405,7 @@ const CalendarView = () => {
     const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) })
 
     return (
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
+      <div className={`grid grid-cols-7 gap-px bg-[${colors.BORDER}] rounded-lg overflow-hidden`}>
         {days.map(day => {
           const isCurrentDay = isToday(day)
           const dayProjects = (projects || []).filter(project => {
@@ -401,16 +422,16 @@ const CalendarView = () => {
           return (
             <div
               key={day.toString()}
-              className={`min-h-[200px] p-2 bg-white ${isCurrentDay ? 'ring-2 ring-primary-500' : ''}`}
+              className={`min-h-[200px] p-2 bg-[${colors.PANEL_BG}] ${isCurrentDay ? `ring-2 ring-[${colors.ACCENT_PURPLE}]` : ''}`}
             >
-              <div className="text-sm font-medium mb-2">
+              <div className={`text-sm font-medium mb-2 text-[${colors.TEXT_PRIMARY}]`}>
                 {format(day, 'EEE d')}
               </div>
               <div className="space-y-1">
                 {dayProjects.map(project => (
                   <div
                     key={project._id}
-                    className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-800'}`}
+                    className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}`}
                     title={`${project.name} (${project.status})`}
                   >
                     {project.name}
@@ -439,17 +460,17 @@ const CalendarView = () => {
     })
 
     return (
-      <div className="grid grid-cols-1 gap-px bg-gray-200 rounded-lg overflow-hidden">
+      <div className={`grid grid-cols-1 gap-px bg-[${colors.BORDER}] rounded-lg overflow-hidden`}>
         {hours.map(hour => (
-          <div key={hour} className="bg-white p-2 min-h-[60px]">
-            <div className="text-sm font-medium text-gray-500 mb-1">
+          <div key={hour} className={`bg-[${colors.PANEL_BG}] p-2 min-h-[60px]`}>
+            <div className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
               {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
             </div>
             <div className="space-y-1">
               {dayProjects.map(project => (
                 <div
                   key={project._id}
-                  className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-800'}`}
+                  className={`text-xs p-1 rounded truncate ${STATUS_COLORS[project.status] || `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}`}
                   title={`${project.name} (${project.status})`}
                 >
                   {project.name}
@@ -470,41 +491,41 @@ const CalendarView = () => {
     })
 
     return (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className={`bg-[${colors.PANEL_BG}] rounded-lg shadow overflow-hidden border border-[${colors.BORDER}]`}>
+        <table className="min-w-full divide-y divide-[${colors.BORDER}]">
+          <thead className={`bg-[${colors.CARD_INNER_BG}]`}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-3 text-left text-xs font-medium text-[${colors.TEXT_SECONDARY}] uppercase tracking-wider`}>
                 Project
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-3 text-left text-xs font-medium text-[${colors.TEXT_SECONDARY}] uppercase tracking-wider`}>
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-3 text-left text-xs font-medium text-[${colors.TEXT_SECONDARY}] uppercase tracking-wider`}>
                 Priority
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-3 text-left text-xs font-medium text-[${colors.TEXT_SECONDARY}] uppercase tracking-wider`}>
                 Deadline
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className={`divide-y divide-[${colors.BORDER}]`}>
             {sortedProjects.map(project => (
-              <tr key={project._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{project.name}</div>
+              <tr key={project._id} className={`hover:bg-[${colors.CARD_INNER_BG}]`}>
+                <td className={`px-6 py-4 whitespace-nowrap`}>
+                  <div className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>{project.name}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_COLORS[project.status] || 'bg-gray-100 text-gray-800'}`}>
+                <td className={`px-6 py-4 whitespace-nowrap`}>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_COLORS[project.status] || `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}`}>
                     {project.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${PRIORITY_COLORS[project.priority] || 'bg-gray-100 text-gray-800'}`}>
+                <td className={`px-6 py-4 whitespace-nowrap`}>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${PRIORITY_COLORS[project.priority] || `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}]`}`}>
                     {project.priority}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className={`px-6 py-4 whitespace-nowrap text-sm text-[${colors.TEXT_SECONDARY}]`}>
                   {project.endDate ? format(new Date(project.endDate), 'MMM d, yyyy') : 'No deadline'}
                 </td>
               </tr>
@@ -518,21 +539,21 @@ const CalendarView = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className={`animate-spin rounded-full h-12 w-12 border-b-2 border-[${colors.ACCENT_PURPLE}]`}></div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-red-500 text-center p-4">
+      <div className={`text-[${colors.ACCENT_RED}] text-center p-4`}>
         {error}
         <button
           onClick={() => {
             fetchProjects()
             fetchTasks()
           }}
-          className="ml-4 text-primary-600 hover:text-primary-700"
+          className={`ml-4 text-[${colors.ACCENT_PURPLE}] hover:text-opacity-80`}
         >
           Retry
         </button>
@@ -541,14 +562,65 @@ const CalendarView = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {renderHeader()}
-      {renderFilterPanel()}
-      
-      {currentView === VIEW_TYPES.MONTH && renderMonthView()}
-      {currentView === VIEW_TYPES.WEEK && renderWeekView()}
-      {currentView === VIEW_TYPES.DAY && renderDayView()}
-      {currentView === VIEW_TYPES.LIST && renderListView()}
+    <div className="h-screen bg-[#1E1E1E] p-6 pt-16 pb-12 overflow-hidden">
+      {/* Page Title */}
+      <div className="w-full h-full bg-[#1E1E1E] rounded-lg">
+        <h1 className={`text-[1.5rem] font-semibold text-[${colors.TEXT_PRIMARY}] mb-6 italic`}>Calendar</h1>
+
+        {/* Breadcrumbs */}
+        <div className={`text-[0.875rem] text-[${colors.TEXT_SECONDARY}] mb-8`}>
+          <span className={`hover:text-[${colors.TEXT_PRIMARY}] cursor-pointer`}>Dashboard</span>
+          <span className="mx-2">/</span>
+          <span>Calendar</span>
+        </div>
+
+        {/* Content Area */}
+        <div className={`flex gap-8 bg-[#1E1E1E] rounded-lg mt-4 h-[calc(100%-8rem)]`}>
+          {/* Main Content */}
+          <div className={`flex-1 bg-[#1E1E1E] overflow-y-auto rounded-lg p-8`}>
+            {renderHeader()}
+            {renderFilterPanel()}
+            
+            <div className="mt-4">
+              {currentView === VIEW_TYPES.MONTH && renderMonthView()}
+              {currentView === VIEW_TYPES.WEEK && renderWeekView()}
+              {currentView === VIEW_TYPES.DAY && renderDayView()}
+              {currentView === VIEW_TYPES.LIST && renderListView()}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className={`w-[300px] bg-[${colors.CARD_INNER_BG}] rounded-lg p-6 sticky top-6 h-fit`}>
+            <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Calendar Overview</h2>
+            <div className="space-y-4">
+              <div className={`p-4 bg-[${colors.PAGE_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+                <h3 className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-2`}>Month View</h3>
+                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                  View all your projects and tasks in a monthly calendar format.
+                </p>
+              </div>
+              <div className={`p-4 bg-[${colors.PAGE_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+                <h3 className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-2`}>Week View</h3>
+                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                  Focus on your weekly schedule and upcoming deadlines.
+                </p>
+              </div>
+              <div className={`p-4 bg-[${colors.PAGE_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+                <h3 className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-2`}>Day View</h3>
+                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                  Get a detailed view of your daily tasks and appointments.
+                </p>
+              </div>
+              <div className={`p-4 bg-[${colors.PAGE_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+                <h3 className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}] mb-2`}>List View</h3>
+                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                  See all your tasks in a chronological list format.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
