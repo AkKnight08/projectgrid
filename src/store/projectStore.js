@@ -35,7 +35,7 @@ export const useProjectStore = create(
         try {
           set({ isLoading: true, error: null })
           const response = await projectsAPI.getById(id)
-          set({ currentProject: response.data, isLoading: false })
+          set({ currentProject: response, isLoading: false })
         } catch (error) {
           set({
             error: error.response?.data?.message || 'Failed to fetch project',
