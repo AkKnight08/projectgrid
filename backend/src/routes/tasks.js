@@ -57,6 +57,35 @@ router.get('/project/:projectId', auth, async (req, res) => {
   }
 });
 
+// Get all tasks for user
+router.get('/', auth, async (req, res) => {
+  try {
+    // First get all projects the user has access to
+    const projects = await Project.find({
+      $or: [
+        { owner: req.user._id },
+        { 'members.user': req.user._id },
+      ],
+    });
+
+    // Get all tasks from these projects
+    const tasks = await Task.find({
+      project: { $in: projects.map(p => p._id) }
+    })
+    .populate('assignee', 'displayName email')
+    .populate('creator', 'displayName email')
+    .populate('project', 'name status');
+
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching all tasks:', error);
+    res.status(500).json({
+      message: error.message || 'Error fetching all tasks',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // Get task by ID
 router.get('/:id', auth, async (req, res) => {
   try {

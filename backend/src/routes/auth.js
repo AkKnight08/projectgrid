@@ -1,35 +1,41 @@
 const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 
-const router = express.Router();
-
-// Register
+// Register a new user
 router.post('/register', async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
 
+    // Validate input
+    if (!email || !password || !displayName) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    let user = await User.findOne({ email });
+    if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
-    const user = new User({
+    user = new User({
       email,
       password,
       displayName,
     });
 
+    // Save user (password will be hashed by the pre-save hook)
     await user.save();
 
-    // Generate token
+    // Create JWT token
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '24h' }
     );
 
     res.status(201).json({
@@ -42,34 +48,51 @@ router.post('/register', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating user' });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
-// Login
+// Login user
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt received');
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Validate input
+    if (!email || !password) {
+      console.log('Missing credentials:', { email: !!email, password: !!password });
+      return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Check password
+    // Check if user exists
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('Looking up user with email:', normalizedEmail);
+    const user = await User.findOne({ email: normalizedEmail });
+    
+    if (!user) {
+      console.log('User not found:', normalizedEmail);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    console.log('User found:', { id: user._id, email: user.email });
+
+    // Validate password
+    console.log('Attempting password comparison');
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      console.log('Invalid password for user:', normalizedEmail);
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
+    console.log('Password validated successfully');
 
-    // Generate token
+    // Create JWT token
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id.toString() },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '24h' }
     );
 
+    console.log('Login successful for user:', normalizedEmail);
     res.json({
       token,
       user: {
@@ -80,17 +103,36 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
 // Get current user
 router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
-    res.json(user);
+    console.log('Getting current user for ID:', req.user._id);
+    
+    // No need to find user again since auth middleware already did that
+    const user = req.user;
+    
+    if (!user) {
+      console.log('User not found in request');
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('User found:', { id: user._id, email: user.email });
+    
+    res.json({
+      id: user._id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      settings: user.settings
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user' });
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error while fetching user' });
   }
 });
 
@@ -98,20 +140,37 @@ router.get('/me', auth, async (req, res) => {
 router.patch('/settings', auth, async (req, res) => {
   try {
     const updates = Object.keys(req.body);
-    const allowedUpdates = ['settings.theme', 'settings.notifications'];
+    const allowedUpdates = [
+      'settings.theme',
+      'settings.language',
+      'settings.notifications',
+      'settings.itemsPerPage',
+      'settings.emailNotifications',
+      'settings.soundEnabled',
+      'settings.autoSave'
+    ];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
     if (!isValidOperation) {
+      console.log('Invalid updates:', { updates, allowedUpdates });
       return res.status(400).json({ message: 'Invalid updates' });
     }
 
+    // Initialize settings object if it doesn't exist
+    if (!req.user.settings) {
+      req.user.settings = {};
+    }
+
+    // Update settings
     updates.forEach(update => {
-      req.user[update] = req.body[update];
+      const [_, setting] = update.split('.');
+      req.user.settings[setting] = req.body[update];
     });
 
     await req.user.save();
     res.json(req.user);
   } catch (error) {
+    console.error('Settings update error:', error);
     res.status(500).json({ message: 'Error updating settings' });
   }
 });

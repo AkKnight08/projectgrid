@@ -12,12 +12,15 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
-    minlength: 6,
   },
   displayName: {
     type: String,
     required: true,
     trim: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
   role: {
     type: String,
@@ -43,6 +46,9 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// Create indexes
+userSchema.index({ email: 1 });
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -58,7 +64,15 @@ userSchema.pre('save', async function(next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  console.log('Comparing passwords for user:', this.email);
+  try {
+    const isMatch = await bcrypt.compare(candidatePassword, this.password);
+    console.log('Password comparison result:', isMatch);
+    return isMatch;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    throw error;
+  }
 };
 
 const User = mongoose.model('User', userSchema);

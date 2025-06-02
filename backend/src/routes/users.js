@@ -105,4 +105,28 @@ router.patch('/:id/role', adminAuth, async (req, res) => {
   }
 });
 
+// Get user by email
+router.get('/email/:email', auth, async (req, res) => {
+  try {
+    console.log('Looking up user by email:', req.params.email);
+    const user = await User.findOne({ email: req.params.email });
+    
+    if (!user) {
+      console.log('User not found for email:', req.params.email);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('User found:', { id: user.id, email: user.email });
+    res.json({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role
+    });
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    res.status(500).json({ message: 'Error fetching user' });
+  }
+});
+
 module.exports = router; 

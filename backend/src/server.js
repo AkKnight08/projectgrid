@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { authLimiter, meLimiter, apiLimiter } = require('./middleware/rateLimiter');
 require('dotenv').config();
 
 // Import routes
@@ -15,17 +15,18 @@ const userRoutes = require('./routes/users');
 const app = express();
 
 // Middleware
-app.use(express.json());
-app.use(cors());
-app.use(morgan('dev'));
 app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+app.use(morgan('dev'));
+app.use(express.json());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+// Apply rate limiting
+app.use('/api/auth/me', meLimiter); // Special limiter for /me endpoint
+app.use('/api/auth', authLimiter); // Stricter limits for other auth routes
+app.use('/api', apiLimiter); // General limits for all other API routes
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -36,7 +37,10 @@ app.use('/api/users', userRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
 });
 
 // Connect to MongoDB
@@ -47,7 +51,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => {
   console.log('Connected to MongoDB');
   // Start server
-  const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 8000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
