@@ -8,7 +8,8 @@ import {
   CreditCardIcon,
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
-import { BACKGROUND_COLORS } from '../constants/colors'
+import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors'
+import { useTheme } from '../context/ThemeContext'
 
 const tabs = [
   { id: 'general', name: 'General', icon: Cog6ToothIcon },
@@ -22,24 +23,43 @@ const tabs = [
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general')
+  const { theme, handleThemeChange } = useTheme()
+
+  // Get colors based on current theme
+  const colors = theme === 'dark' ? DARK_MODE_COLORS : {
+    PAGE_BG: BACKGROUND_COLORS.MAIN,
+    PANEL_BG: '#FFFFFF',
+    CARD_INNER_BG: '#FFFFFF',
+    BORDER: '#E5E5E5',
+    TEXT_PRIMARY: '#1A1A1A',
+    TEXT_SECONDARY: '#666666',
+    TEXT_DISABLED: '#999999',
+    ACCENT_PURPLE: '#7C3AED',
+    ACCENT_TEAL: '#0D9488',
+    ACCENT_ORANGE: '#D97706',
+    ACCENT_RED: '#DC2626',
+    ACCENT_GREEN: '#059669',
+    ICON_DEFAULT: '#666666',
+    ICON_HOVER: '#1A1A1A'
+  }
 
   return (
-    <div className={`h-screen bg-[${BACKGROUND_COLORS.MAIN}] p-6 pt-16 pb-12 overflow-hidden`}>
+    <div className="h-screen bg-[#1E1E1E] p-6 pt-16 pb-12 overflow-hidden">
       {/* Page Title */}
-      <div className="max-w-7xl mx-auto h-full">
-        <h1 className="text-[1.5rem] font-semibold text-gray-900 mb-6">Settings</h1>
+      <div className="w-full h-full bg-[#1E1E1E] rounded-lg">
+        <h1 className={`text-[1.5rem] font-semibold text-[${colors.TEXT_PRIMARY}] mb-6 italic`}>Settings</h1>
 
         {/* Breadcrumbs */}
-        <div className="text-[0.875rem] text-gray-500 mb-8">
-          <span className="hover:text-gray-900 cursor-pointer">Dashboard</span>
+        <div className={`text-[0.875rem] text-[${colors.TEXT_SECONDARY}] mb-8`}>
+          <span className={`hover:text-[${colors.TEXT_PRIMARY}] cursor-pointer`}>Dashboard</span>
           <span className="mx-2">/</span>
           <span>Settings</span>
         </div>
 
         {/* Content Area */}
-        <div className="flex gap-8 bg-[#F5F5F5] rounded-lg mt-4 h-[calc(100%-8rem)]">
+        <div className={`flex gap-8 bg-[#1E1E1E] rounded-lg mt-4 h-[calc(100%-8rem)]`}>
           {/* Tab Navigation */}
-          <div className="w-[240px] bg-white rounded-lg p-4 flex flex-col gap-2 sticky top-6 h-fit">
+          <div className={`w-[240px] bg-[${colors.CARD_INNER_BG}] rounded-lg p-4 flex flex-col gap-2 sticky top-6 h-fit`}>
             {tabs.map(tab => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -52,11 +72,11 @@ const Settings = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-3 px-4 py-3 text-[0.875rem] font-medium rounded-md transition-colors
                     ${isActive 
-                      ? 'bg-white text-gray-900 border-l-4 border-blue-500 -ml-1 shadow-sm' 
-                      : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                      ? `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] border-l-4 border-[${colors.ACCENT_PURPLE}] -ml-1 shadow-sm` 
+                      : `text-[${colors.TEXT_SECONDARY}] hover:bg-[${colors.CARD_INNER_BG}] hover:text-[${colors.TEXT_PRIMARY}]`
                     }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? `text-[${colors.ACCENT_PURPLE}]` : `text-[${colors.ICON_DEFAULT}]`}`} />
                   {tab.name}
                 </button>
               )
@@ -64,27 +84,28 @@ const Settings = () => {
           </div>
 
           {/* Tab Panels */}
-          <div className="flex-1 bg-[#F5F5F5] overflow-y-auto rounded-lg p-8">
+          <div className={`flex-1 bg-[#1E1E1E] overflow-y-auto rounded-lg p-8`}>
             {activeTab === 'general' && (
               <div role="tabpanel" aria-labelledby="tab-general" className="space-y-6">
                 {/* Workspace Information */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Workspace Information</h2>
+                  <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Workspace Information</h2>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="workspaceName" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="workspaceName" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
                         Workspace Name
                       </label>
                       <input
                         type="text"
                         id="workspaceName"
                         placeholder="Enter workspace name"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+                          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+                          placeholder:text-[${colors.TEXT_DISABLED}]`}
                       />
                     </div>
                     <div>
-                      <label htmlFor="workspaceUrl" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="workspaceUrl" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
                         Workspace URL
                       </label>
                       <div className="flex gap-2">
@@ -93,9 +114,9 @@ const Settings = () => {
                           id="workspaceUrl"
                           value="https://projectpulse.com/my-team"
                           readOnly
-                          className="flex-1 bg-gray-100 border border-gray-300 rounded-md text-gray-500 px-4 py-2 text-sm cursor-not-allowed"
+                          className={`flex-1 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_DISABLED}] px-4 py-2 text-sm cursor-not-allowed`}
                         />
-                        <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                        <button className={`px-4 py-2 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>
                           Copy
                         </button>
                       </div>
@@ -105,16 +126,16 @@ const Settings = () => {
 
                 {/* Language & Locale */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Language & Locale</h2>
+                  <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Language & Locale</h2>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="language" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="language" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
                         Primary Language
                       </label>
                       <select
                         id="language"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+                          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none`}
                       >
                         <option value="en">English</option>
                         <option value="es">Spanish</option>
@@ -122,13 +143,13 @@ const Settings = () => {
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="timezone" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="timezone" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
                         Timezone
                       </label>
                       <select
                         id="timezone"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+                          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none`}
                       >
                         <option value="auto">Auto-detect</option>
                         <option value="utc">UTC</option>
@@ -141,7 +162,7 @@ const Settings = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">
+                  <button className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>
                     Save Changes
                   </button>
                 </div>
@@ -152,34 +173,34 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-account" className="space-y-6">
                 {/* Profile Information */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Profile Information</h2>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="fullName" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Full Name
                       </label>
                       <input
                         type="text"
                         id="fullName"
                         placeholder="Enter your full name"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                          focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label htmlFor="displayName" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="displayName" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Display Name
                       </label>
                       <input
                         type="text"
                         id="displayName"
                         placeholder="Enter your display name"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                          focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="email" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Email Address
                       </label>
                       <div className="flex gap-2">
@@ -188,38 +209,38 @@ const Settings = () => {
                           id="email"
                           value="user@example.com"
                           readOnly
-                          className="flex-1 bg-gray-100 border border-gray-300 rounded-md text-gray-500 px-4 py-2 text-sm cursor-not-allowed"
+                          className="flex-1 bg-[#242424] border border-[#2E2E2E] rounded-md text-[#6B6B6B] px-4 py-2 text-sm cursor-not-allowed"
                         />
-                        <button className="px-4 py-2 text-blue-500 hover:text-blue-600 transition-colors text-sm">
+                        <button className="px-4 py-2 text-[#BB86FC] hover:text-[#BB86FC]/90 transition-colors text-sm">
                           Change Email
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="phone" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Phone Number
                       </label>
                       <input
                         type="tel"
                         id="phone"
                         placeholder="+1 (555) 123-4567"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                          focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                      <label className="block text-sm font-medium text-[#A0A0A0] mb-2">
                         Profile Picture
                       </label>
                       <div className="flex items-center gap-4">
-                        <div className="h-16 w-16 rounded-full border-2 border-gray-300 bg-blue-500 flex items-center justify-center text-white text-xl font-medium">
+                        <div className="h-16 w-16 rounded-full border-2 border-[#2E2E2E] bg-[#BB86FC] flex items-center justify-center text-[#E0E0E0] text-xl font-medium">
                           U
                         </div>
                         <div className="flex gap-2">
-                          <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm">
+                          <button className="px-4 py-2 bg-[#BB86FC] text-[#121212] rounded-md hover:bg-[#BB86FC]/90 transition-colors text-sm">
                             Upload Photo
                           </button>
-                          <button className="px-4 py-2 text-red-500 hover:text-red-600 transition-colors text-sm">
+                          <button className="px-4 py-2 text-[#CF6679] hover:text-[#CF6679]/90 transition-colors text-sm">
                             Remove
                           </button>
                         </div>
@@ -230,22 +251,22 @@ const Settings = () => {
 
                 {/* Password Change */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Change Password</h2>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="currentPassword" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Current Password
                       </label>
                       <input
                         type="password"
                         id="currentPassword"
                         placeholder="••••••••"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                          focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="newPassword" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         New Password
                       </label>
                       <div className="relative">
@@ -253,31 +274,31 @@ const Settings = () => {
                           type="password"
                           id="newPassword"
                           placeholder="••••••••"
-                          className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                            focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                          className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                            focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                         />
-                        <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900">
+                        <button className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#E0E0E0]">
                           👁️
                         </button>
                       </div>
                       {/* Password Strength Indicator */}
                       <div className="mt-2">
-                        <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
-                          <div className="h-full w-1/3 bg-red-500"></div>
+                        <div className="h-2 bg-[#2E2E2E] rounded-full overflow-hidden">
+                          <div className="h-full w-1/3 bg-[#CF6679]"></div>
                         </div>
-                        <span className="text-xs text-red-500 mt-1">Weak</span>
+                        <span className="text-xs text-[#CF6679] mt-1">Weak</span>
                       </div>
                     </div>
                     <div>
-                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-600 mb-1">
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Confirm New Password
                       </label>
                       <input
                         type="password"
                         id="confirmPassword"
                         placeholder="••••••••"
-                        className="w-full bg-gray-100 border border-gray-300 rounded-md text-gray-900 px-4 py-2 text-sm
-                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                        className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                          focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -285,7 +306,7 @@ const Settings = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">
+                  <button className="px-6 py-3 bg-[#BB86FC] text-[#121212] font-semibold rounded-md hover:bg-[#BB86FC]/90 transition-colors">
                     Save Changes
                   </button>
                 </div>
@@ -296,23 +317,24 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-appearance" className="space-y-6">
                 {/* Theme Selection */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Theme Selection</h2>
+                  <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Theme Selection</h2>
                   <div className="grid grid-cols-3 gap-4">
                     {[
                       { id: 'light', name: 'Light Mode', icon: '☀️' },
                       { id: 'dark', name: 'Dark Mode', icon: '🌙' },
                       { id: 'system', name: 'System Default', icon: '🖥️' }
-                    ].map(theme => (
+                    ].map(themeOption => (
                       <button
-                        key={theme.id}
+                        key={themeOption.id}
+                        onClick={() => handleThemeChange(themeOption.id)}
                         className={`flex items-center gap-2 p-4 rounded-md border transition-colors
-                          ${theme.id === 'dark'
-                            ? 'bg-gray-200 border-blue-500 text-gray-900'
-                            : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                          ${themeOption.id === theme
+                            ? `bg-[${colors.CARD_INNER_BG}] border-[${colors.ACCENT_PURPLE}] text-[${colors.TEXT_PRIMARY}]`
+                            : `bg-[${colors.CARD_INNER_BG}] border-[${colors.BORDER}] text-[${colors.TEXT_SECONDARY}] hover:bg-[${colors.CARD_INNER_BG}] hover:text-[${colors.TEXT_PRIMARY}]`
                           }`}
                       >
-                        <span className="text-xl">{theme.icon}</span>
-                        <span className="text-sm font-medium">{theme.name}</span>
+                        <span className="text-xl">{themeOption.icon}</span>
+                        <span className="text-sm font-medium">{themeOption.name}</span>
                       </button>
                     ))}
                   </div>
@@ -320,36 +342,36 @@ const Settings = () => {
 
                 {/* Font Size */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Font Size</h2>
+                  <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Font Size</h2>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">12pt</span>
-                      <span className="text-sm text-gray-600">18pt</span>
+                      <span className={`text-sm text-[${colors.TEXT_SECONDARY}]`}>12pt</span>
+                      <span className={`text-sm text-[${colors.TEXT_SECONDARY}]`}>18pt</span>
                     </div>
                     <input
                       type="range"
                       min="12"
                       max="18"
                       defaultValue="14"
-                      className="w-full h-2 bg-gray-300 rounded-full appearance-none cursor-pointer
+                      className={`w-full h-2 bg-[${colors.BORDER}] rounded-full appearance-none cursor-pointer
                         [&::-webkit-slider-thumb]:appearance-none
                         [&::-webkit-slider-thumb]:w-4
                         [&::-webkit-slider-thumb]:h-4
                         [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-blue-500
+                        [&::-webkit-slider-thumb]:bg-[${colors.ACCENT_PURPLE}]
                         [&::-webkit-slider-thumb]:shadow-lg
                         [&::-webkit-slider-thumb]:transition-transform
-                        [&::-webkit-slider-thumb]:hover:scale-110"
+                        [&::-webkit-slider-thumb]:hover:scale-110`}
                     />
                     <div className="text-center">
-                      <span className="text-sm text-gray-600">Current: 14pt</span>
+                      <span className={`text-sm text-[${colors.TEXT_SECONDARY}]`}>Current: 14pt</span>
                     </div>
                   </div>
                 </section>
 
                 {/* Sidebar Position */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Sidebar Position</h2>
+                  <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Sidebar Position</h2>
                   <div className="grid grid-cols-2 gap-4">
                     {[
                       { id: 'left', name: 'Left', icon: '◀️' },
@@ -359,8 +381,8 @@ const Settings = () => {
                         key={position.id}
                         className={`flex flex-col items-center justify-center gap-2 p-6 rounded-md border transition-colors
                           ${position.id === 'left'
-                            ? 'bg-gray-200 border-blue-500 text-gray-900'
-                            : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                            ? `bg-[${colors.CARD_INNER_BG}] border-[${colors.ACCENT_PURPLE}] text-[${colors.TEXT_PRIMARY}]`
+                            : `bg-[${colors.CARD_INNER_BG}] border-[${colors.BORDER}] text-[${colors.TEXT_SECONDARY}] hover:bg-[${colors.CARD_INNER_BG}] hover:text-[${colors.TEXT_PRIMARY}]`
                           }`}
                       >
                         <span className="text-2xl">{position.icon}</span>
@@ -372,7 +394,7 @@ const Settings = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">
+                  <button className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>
                     Save Changes
                   </button>
                 </div>
@@ -383,7 +405,7 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-notifications" className="space-y-6">
                 {/* Email Notifications */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Notifications</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Email Notifications</h2>
                   <div className="space-y-4">
                     {[
                       'New Task Assigned',
@@ -392,10 +414,10 @@ const Settings = () => {
                       'Weekly Summary'
                     ].map((notification, index) => (
                       <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{notification}</span>
+                        <span className="text-sm text-[#A0A0A0]">{notification}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                          <div className="w-11 h-6 bg-[#2E2E2E] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#BB86FC]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#2E2E2E] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#BB86FC]"></div>
                         </label>
                       </div>
                     ))}
@@ -404,7 +426,7 @@ const Settings = () => {
 
                 {/* In-App Notifications */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">In-App Notifications</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">In-App Notifications</h2>
                   <div className="space-y-4">
                     {[
                       'Show banner for new comments',
@@ -412,10 +434,10 @@ const Settings = () => {
                       'Mute sounds'
                     ].map((notification, index) => (
                       <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{notification}</span>
+                        <span className="text-sm text-[#A0A0A0]">{notification}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                          <div className="w-11 h-6 bg-[#2E2E2E] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#BB86FC]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#2E2E2E] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#BB86FC]"></div>
                         </label>
                       </div>
                     ))}
@@ -424,12 +446,12 @@ const Settings = () => {
 
                 {/* Push Notifications */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Push Notifications</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Push Notifications</h2>
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#A0A0A0]">
                       Enable push notifications on mobile app.
                     </p>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm">
+                    <button className="px-4 py-2 bg-[#BB86FC] text-[#121212] rounded-md hover:bg-[#BB86FC]/90 transition-colors text-sm">
                       Send Test Notification
                     </button>
                   </div>
@@ -437,7 +459,7 @@ const Settings = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors">
+                  <button className="px-6 py-3 bg-[#BB86FC] text-[#121212] font-semibold rounded-md hover:bg-[#BB86FC]/90 transition-colors">
                     Save Changes
                   </button>
                 </div>
@@ -448,7 +470,7 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-integrations" className="space-y-6">
                 {/* Connected Apps */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Apps</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Connected Apps</h2>
                   <div className="space-y-3">
                     {[
                       { name: 'Google Calendar', status: 'connected' },
@@ -457,20 +479,20 @@ const Settings = () => {
                     ].map((app, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 bg-gray-200 border border-gray-300 rounded-md"
+                        className="flex items-center justify-between p-4 bg-[#242424] border border-[#2E2E2E] rounded-md"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-md bg-gray-300 flex items-center justify-center">
+                          <div className="h-10 w-10 rounded-md bg-[#242424] flex items-center justify-center">
                             {app.name[0]}
                           </div>
-                          <span className="text-sm text-gray-600">{app.name}</span>
+                          <span className="text-sm text-[#A0A0A0]">{app.name}</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span
                             className={`px-2 py-1 rounded text-xs font-medium ${
                               app.status === 'connected'
-                                ? 'bg-green-500 text-green-900'
-                                : 'bg-red-500 text-red-900'
+                                ? 'bg-[#69FFA5] text-[#121212]'
+                                : 'bg-[#CF6679] text-[#E0E0E0]'
                             }`}
                           >
                             {app.status === 'connected' ? 'Connected' : 'Not Connected'}
@@ -478,8 +500,8 @@ const Settings = () => {
                           <button
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                               app.status === 'connected'
-                                ? 'bg-red-500 text-red-900 hover:bg-red-600'
-                                : 'bg-blue-500 text-blue-900 hover:bg-blue-600'
+                                ? 'bg-[#CF6679] text-[#E0E0E0] hover:bg-[#CF6679]/90'
+                                : 'bg-[#BB86FC] text-[#121212] hover:bg-[#BB86FC]/90'
                             }`}
                           >
                             {app.status === 'connected' ? 'Disconnect' : 'Connect'}
@@ -492,23 +514,23 @@ const Settings = () => {
 
                 {/* API Key Management */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">API Key Management</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">API Key Management</h2>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-200 border border-gray-300 rounded-md">
+                    <div className="flex items-center justify-between p-4 bg-[#242424] border border-[#2E2E2E] rounded-md">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Your API Key:</span>
-                        <span className="text-sm text-gray-900">••••-••••-ABCD</span>
+                        <span className="text-sm text-[#A0A0A0]">Your API Key:</span>
+                        <span className="text-sm text-[#E0E0E0]">••••-••••-ABCD</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-500 hover:text-gray-900 transition-colors">
+                        <button className="p-2 text-[#6B6B6B] hover:text-[#E0E0E0] transition-colors">
                           📋
                         </button>
-                        <button className="px-4 py-2 bg-amber-500 text-amber-900 rounded-md hover:bg-amber-600 transition-colors text-sm">
+                        <button className="px-4 py-2 bg-[#D97706] text-[#121212] rounded-md hover:bg-[#D97706]/90 transition-colors text-sm">
                           Regenerate Key
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#A0A0A0]">
                       Keep your API key secure. If you suspect it has been compromised, regenerate it immediately.
                     </p>
                   </div>
@@ -520,20 +542,20 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-billing" className="space-y-6">
                 {/* Current Plan */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Plan</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Current Plan</h2>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-600">
-                      Current Plan: <span className="text-gray-900 font-medium">Pro</span>
+                    <p className="text-sm text-[#A0A0A0]">
+                      Current Plan: <span className="text-[#BB86FC] font-medium">Pro</span>
                     </p>
-                    <p className="text-sm text-gray-600">
-                      Next Billing Date: <span className="text-gray-900">Jul 15, 2025</span>
+                    <p className="text-sm text-[#A0A0A0]">
+                      Next Billing Date: <span className="text-[#BB86FC]">Jul 15, 2025</span>
                     </p>
                   </div>
                 </section>
 
                 {/* Plan Options */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Plans</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Available Plans</h2>
                   <div className="grid grid-cols-3 gap-4">
                     {[
                       {
@@ -557,16 +579,16 @@ const Settings = () => {
                     ].map((plan, index) => (
                       <div
                         key={index}
-                        className="flex flex-col p-6 bg-gray-200 border border-gray-300 rounded-lg"
+                        className="flex flex-col p-6 bg-[#242424] border border-[#2E2E2E] rounded-lg"
                       >
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{plan.name}</h3>
-                        <p className={`text-2xl font-bold mb-4 ${plan.current ? 'text-blue-500' : 'text-gray-600'}`}>
-                          {plan.price}<span className="text-sm font-normal text-gray-600">/month</span>
+                        <h3 className="text-lg font-semibold text-[#E0E0E0] mb-2">{plan.name}</h3>
+                        <p className={`text-2xl font-bold mb-4 ${plan.current ? 'text-[#BB86FC]' : 'text-[#A0A0A0]'}`}>
+                          {plan.price}<span className="text-sm font-normal text-[#A0A0A0]">/month</span>
                         </p>
                         <ul className="space-y-2 mb-6">
                           {plan.features.map((feature, i) => (
-                            <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                              <span className="text-green-500">✓</span>
+                            <li key={i} className="flex items-center gap-2 text-sm text-[#A0A0A0]">
+                              <span className="text-[#69FFA5]">✓</span>
                               {feature}
                             </li>
                           ))}
@@ -574,8 +596,8 @@ const Settings = () => {
                         <button
                           className={`mt-auto px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             plan.current
-                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'bg-blue-500 text-white hover:bg-blue-600'
+                              ? 'bg-[#2E2E2E] text-[#A0A0A0] cursor-not-allowed'
+                              : 'bg-[#BB86FC] text-[#121212] hover:bg-[#BB86FC]/90'
                           }`}
                         >
                           {plan.current ? 'Current Plan' : 'Select Plan'}
@@ -587,15 +609,15 @@ const Settings = () => {
 
                 {/* Payment Method */}
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h2>
-                  <div className="flex items-center justify-between p-4 bg-gray-200 border border-gray-300 rounded-md">
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Payment Method</h2>
+                  <div className="flex items-center justify-between p-4 bg-[#242424] border border-[#2E2E2E] rounded-md">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-16 rounded bg-gray-300 flex items-center justify-center">
+                      <div className="h-10 w-16 rounded bg-[#242424] flex items-center justify-center">
                         💳
                       </div>
-                      <span className="text-sm text-gray-600">Card ending in 1234</span>
+                      <span className="text-sm text-[#A0A0A0]">Card ending in 1234</span>
                     </div>
-                    <button className="px-4 py-2 bg-accentAmber text-[#0F172A] rounded-md hover:bg-[#D97706] transition-colors text-sm">
+                    <button className="px-4 py-2 bg-[#D97706] text-[#121212] rounded-md hover:bg-[#D97706]/90 transition-colors text-sm">
                       Update Card
                     </button>
                   </div>
@@ -603,15 +625,15 @@ const Settings = () => {
 
                 {/* Billing History */}
                 <section>
-                  <h2 className="text-lg font-semibold text-white mb-4">Billing History</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Billing History</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-[#3A3A4F]">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-textSecondary">Date</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-textSecondary">Description</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-textSecondary">Amount</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-textSecondary">Status</th>
+                        <tr className="border-b border-[#2E2E2E]">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-[#A0A0A0]">Date</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-[#A0A0A0]">Description</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-[#A0A0A0]">Amount</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-[#A0A0A0]">Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -620,12 +642,12 @@ const Settings = () => {
                           { date: 'Jun 15, 2024', description: 'Pro Plan - Monthly', amount: '$29.00', status: 'Paid' },
                           { date: 'May 15, 2024', description: 'Pro Plan - Monthly', amount: '$29.00', status: 'Paid' }
                         ].map((item, index) => (
-                          <tr key={index} className="border-b border-[#3A3A4F] hover:bg-[#3A3A4F]">
-                            <td className="py-3 px-4 text-sm text-textSecondary">{item.date}</td>
-                            <td className="py-3 px-4 text-sm text-textSecondary">{item.description}</td>
-                            <td className="py-3 px-4 text-sm text-textSecondary">{item.amount}</td>
+                          <tr key={index} className="border-b border-[#2E2E2E] hover:bg-[#2E2E2E]">
+                            <td className="py-3 px-4 text-sm text-[#A0A0A0]">{item.date}</td>
+                            <td className="py-3 px-4 text-sm text-[#A0A0A0]">{item.description}</td>
+                            <td className="py-3 px-4 text-sm text-[#A0A0A0]">{item.amount}</td>
                             <td className="py-3 px-4">
-                              <span className="px-2 py-1 rounded text-xs font-medium bg-accentGreen text-[#0F172A]">
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-[#69FFA5] text-[#121212]">
                                 {item.status}
                               </span>
                             </td>
@@ -642,51 +664,28 @@ const Settings = () => {
               <div role="tabpanel" aria-labelledby="tab-security" className="space-y-6">
                 {/* Two-Factor Authentication */}
                 <section>
-                  <h2 className="text-lg font-semibold text-white mb-4">Two-Factor Authentication</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Two-Factor Authentication</h2>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-textSecondary">Enable two-factor authentication for additional security</p>
-                        <p className="text-xs text-textMuted mt-1">Requires an authenticator app like Google Authenticator</p>
+                        <p className="text-sm text-[#A0A0A0]">Enable two-factor authentication for additional security</p>
+                        <p className="text-xs text-[#6B6B6B] mt-1">Requires an authenticator app like Google Authenticator</p>
                       </div>
                       <button
                         role="switch"
                         aria-checked="true"
-                        className="relative inline-flex h-5 w-9 items-center rounded-full bg-[#3A3A4F] transition-colors"
+                        className="relative inline-flex h-5 w-9 items-center rounded-full bg-[#2E2E2E] transition-colors"
                       >
                         <span className="sr-only">Enable 2FA</span>
-                        <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-4" />
+                        <span className="inline-block h-4 w-4 transform rounded-full bg-[#BB86FC] transition-transform translate-x-4" />
                       </button>
-                    </div>
-                    <div className="p-4 bg-[#2A2A3B] border border-[#3A3A4F] rounded-md">
-                      <p className="text-sm text-textSecondary mb-4">Scan this QR code with your authenticator app</p>
-                      <div className="w-48 h-48 bg-white rounded-md flex items-center justify-center mb-4">
-                        {/* QR Code placeholder */}
-                        <span className="text-4xl">📱</span>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-white">Backup Codes</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['ABCD-1234', 'EFGH-5678', 'IJKL-9012', 'MNOP-3456'].map((code, index) => (
-                            <div
-                              key={index}
-                              className="p-2 bg-[#3A3A4F] text-textSecondary text-sm text-center rounded-md"
-                            >
-                              {code}
-                            </div>
-                          ))}
-                        </div>
-                        <button className="px-4 py-2 bg-accentAmber text-[#0F172A] rounded-md hover:bg-[#D97706] transition-colors text-sm">
-                          Regenerate Codes
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </section>
 
                 {/* Session Management */}
                 <section>
-                  <h2 className="text-lg font-semibold text-white mb-4">Active Sessions</h2>
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Active Sessions</h2>
                   <div className="space-y-3">
                     {[
                       {
@@ -704,25 +703,25 @@ const Settings = () => {
                     ].map((session, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 bg-[#2A2A3B] border border-[#3A3A4F] rounded-md"
+                        className="flex items-center justify-between p-4 bg-[#242424] border border-[#2E2E2E] rounded-md"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-md bg-[#3A3A4F] flex items-center justify-center">
+                          <div className="h-10 w-10 rounded-md bg-[#242424] flex items-center justify-center">
                             {session.device.includes('Mac') ? '💻' : '📱'}
                           </div>
                           <div>
-                            <p className="text-sm text-white">{session.device}</p>
-                            <p className="text-xs text-textSecondary">
+                            <p className="text-sm text-[#E0E0E0]">{session.device}</p>
+                            <p className="text-xs text-[#A0A0A0]">
                               {session.location} • {session.browser} • {session.lastActive}
                             </p>
                           </div>
                         </div>
-                        <button className="px-4 py-2 bg-accentRed text-white rounded-md hover:bg-[#991B1B] transition-colors text-sm">
+                        <button className="px-4 py-2 bg-[#CF6679] text-[#E0E0E0] rounded-md hover:bg-[#CF6679]/90 transition-colors text-sm">
                           Sign Out
                         </button>
                       </div>
                     ))}
-                    <button className="w-full px-4 py-2 bg-accentRed text-white rounded-md hover:bg-[#991B1B] transition-colors text-sm">
+                    <button className="w-full px-4 py-2 bg-[#CF6679] text-[#E0E0E0] rounded-md hover:bg-[#CF6679]/90 transition-colors text-sm">
                       Sign out of all sessions
                     </button>
                   </div>
@@ -730,29 +729,30 @@ const Settings = () => {
 
                 {/* Delete Account */}
                 <section>
-                  <h2 className="text-lg font-semibold text-white mb-4">Delete Account</h2>
-                  <div className="p-4 bg-[#2C1515] border border-[#491111] rounded-md">
+                  <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Delete Account</h2>
+                  <div className="p-4 bg-[#242424] border border-[#2E2E2E] rounded-md">
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">🛑</span>
                       <div className="space-y-4">
-                        <p className="text-sm text-textSecondary">
+                        <p className="text-sm text-[#A0A0A0]">
                           Deleting your account is permanent and cannot be undone. All your data will be permanently removed.
                         </p>
                         <div>
-                          <label htmlFor="deleteConfirm" className="block text-sm font-medium text-textSecondary mb-2">
+                          <label htmlFor="deleteConfirm" className="block text-sm font-medium text-[#A0A0A0] mb-2">
                             Type DELETE to confirm
                           </label>
                           <input
                             type="text"
                             id="deleteConfirm"
                             placeholder="Type DELETE"
-                            className="w-full bg-[#2A2A3B] border border-[#3A3A4F] rounded-md text-textPrimary px-4 py-2 text-sm
-                              focus:border-accentRed focus:ring-2 focus:ring-accentRed/30 focus:outline-none"
+                            className="w-full bg-[#1E1E1E] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
+                              focus:border-[#CF6679] focus:ring-2 focus:ring-[#CF6679]/30 focus:outline-none
+                              placeholder:text-[#6B6B6B]"
                           />
                         </div>
                         <button
                           disabled
-                          className="px-6 py-3 bg-accentRed text-white rounded-md hover:bg-[#991B1B] transition-colors text-sm
+                          className="px-6 py-3 bg-[#CF6679] text-[#E0E0E0] rounded-md hover:bg-[#CF6679]/90 transition-colors text-sm
                             disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Delete My Account
