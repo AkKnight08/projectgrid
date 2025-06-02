@@ -13,7 +13,7 @@ const Layout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#1E1E2D] overflow-x-hidden">
       <div className="flex h-screen relative">
         <div className="hidden lg:flex lg:flex-col lg:w-64 flex-shrink-0">
           <div className="h-16 flex items-center justify-center">
@@ -25,7 +25,7 @@ const Layout = () => {
         </div>
         <div className="flex-1 flex flex-col">
           <Navbar onSearch={handleSearch} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto">
             <Outlet context={{ searchQuery }} />
           </main>
         </div>

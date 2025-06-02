@@ -18,7 +18,6 @@ const navItems = [
   { path: '/calendar', icon: CalendarIcon, label: 'Calendar' },
   { path: '/analytics', icon: ChartBarIcon, label: 'Analytics' },
   { path: '/tasks', icon: ClipboardDocumentListIcon, label: 'Tasks' },
-  // { path: '/teams', icon: UserGroupIcon, label: 'Teams' },
   { path: '/settings', icon: Cog6ToothIcon, label: 'Settings' },
 ]
 
