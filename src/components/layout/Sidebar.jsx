@@ -69,7 +69,7 @@ const Sidebar = () => {
         bg-charcoalDeep border-r border-slateDark`}
     >
       {/* Top Section */}
-      <div className={`flex-1 overflow-y-auto relative ${isCollapsed ? 'pr-0' : 'pr-6'}`}>
+      <div className={`flex-1 overflow-y-auto relative pr-0`}>
         {/* Collapse Toggle */}
         <button
           onClick={toggleCollapse}
