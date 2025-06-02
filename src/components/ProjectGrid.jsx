@@ -220,24 +220,24 @@ const ProjectGrid = ({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => setShowGrid(!showGrid)}
-          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-        >
-          {showGrid ? 'Hide Grid' : 'Show Grid'}
-        </button>
-        <button
-          onClick={() => setIsCompact(!isCompact)}
-          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-        >
-          {isCompact ? 'Disable Compact' : 'Enable Compact'}
-        </button>
+    <div className="flex flex-col gap-4 relative">
+      <div className="absolute inset-0 bg-[#1E1E1E]">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(255, 255, 255, 0.4) 2px, transparent 2px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 2px, transparent 2px)
+          `,
+          backgroundSize: '25px 25px',
+          maskImage: 'radial-gradient(circle at center, black 0%, transparent 95%)'
+        }} />
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 3px, transparent 3px)',
+          backgroundSize: '25px 25px',
+          maskImage: 'radial-gradient(circle at center, black 0%, transparent 95%)'
+        }} />
       </div>
-
       <ResponsiveGridLayout
-        className={`layout ${showGrid ? 'show-grid' : ''}`}
+        className="layout relative z-10"
         layouts={layouts}
         breakpoints={breakpoints}
         cols={cols}
@@ -245,10 +245,10 @@ const ProjectGrid = ({
         margin={[16, 16]}
         containerPadding={[16, 16]}
         useCSSTransforms={true}
-        compactType={isCompact ? 'vertical' : null}
-        preventCollision={!isCompact}
-        isDraggable={!isCompact && isInitialized}
-        isResizable={!isCompact && isInitialized}
+        compactType="vertical"
+        preventCollision={false}
+        isDraggable={isInitialized}
+        isResizable={isInitialized}
         draggableHandle=".drag-handle"
         resizeHandles={['se']}
         onDragStop={handleLayoutChange}
