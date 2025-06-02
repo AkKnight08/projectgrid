@@ -54,28 +54,94 @@ const Analytics = () => {
   const [drillDown, setDrillDown] = useState('status')
 
   useEffect(() => {
+    console.log('Analytics: Initial fetch of projects and tasks')
     fetchProjects()
     fetchTasks()
   }, []) // Empty dependency array since we only want to fetch once on mount
 
+  // Log state changes
+  useEffect(() => {
+    console.log('Analytics: Projects updated:', {
+      count: projects?.length,
+      projects: projects,
+      loading: projectsLoading,
+      error: projectsError
+    })
+  }, [projects, projectsLoading, projectsError])
+
+  useEffect(() => {
+    console.log('Analytics: Tasks updated:', {
+      count: tasks?.length,
+      tasks: tasks,
+      loading: tasksLoading,
+      error: tasksError
+    })
+  }, [tasks, tasksLoading, tasksError])
+
   // Compute analytics data
   const analyticsData = useMemo(() => {
-    if (!projects?.length || !tasks?.length) return null
+    console.log('Analytics: Computing analytics data with:', {
+      projectsCount: projects?.length,
+      tasksCount: tasks?.length,
+      dateRange
+    })
+
+    if (!projects?.length) {
+      console.log('Analytics: No projects available')
+      return null
+    }
 
     // Filter data based on date range
-    const filteredProjects = projects.filter(project => 
-      project?.startDate && isWithinInterval(parseISO(project.startDate), {
-        start: parseISO(dateRange.start),
-        end: parseISO(dateRange.end)
-      })
-    )
+    const filteredProjects = projects.filter(project => {
+      // If project has no dates, include it
+      if (!project?.startDate && !project?.endDate) {
+        console.log('Analytics: Including project without dates:', project.name)
+        return true
+      }
 
-    const filteredTasks = tasks.filter(task =>
+      // If only one date is set, use it for both start and end
+      const projectStart = project.startDate ? parseISO(project.startDate) : parseISO(project.endDate)
+      const projectEnd = project.endDate ? parseISO(project.endDate) : parseISO(project.startDate)
+
+      // Check if project overlaps with the selected date range
+      const rangeStart = parseISO(dateRange.start)
+      const rangeEnd = parseISO(dateRange.end)
+
+      const isInRange = (
+        (projectStart <= rangeEnd && projectEnd >= rangeStart) || // Project overlaps with range
+        (projectStart >= rangeStart && projectStart <= rangeEnd) || // Project starts within range
+        (projectEnd >= rangeStart && projectEnd <= rangeEnd) // Project ends within range
+      )
+
+      console.log('Analytics: Project date check:', {
+        name: project.name,
+        start: projectStart,
+        end: projectEnd,
+        rangeStart,
+        rangeEnd,
+        isInRange
+      })
+
+      return isInRange
+    })
+
+    console.log('Analytics: Filtered projects:', {
+      total: projects.length,
+      filtered: filteredProjects.length,
+      projects: filteredProjects.map(p => p.name)
+    })
+
+    const filteredTasks = tasks?.length ? tasks.filter(task =>
       task?.dueDate && isWithinInterval(parseISO(task.dueDate), {
         start: parseISO(dateRange.start),
         end: parseISO(dateRange.end)
       })
-    )
+    ) : []
+
+    console.log('Analytics: Filtered tasks:', {
+      total: tasks?.length || 0,
+      filtered: filteredTasks.length
+    })
 
     // Calculate metrics
     const totalProjects = filteredProjects.length
@@ -85,6 +151,14 @@ const Analytics = () => {
     const overdueTasks = filteredTasks.filter(t => 
       t?.status !== 'completed' && t?.dueDate && parseISO(t.dueDate) < new Date()
     ).length
+
+    console.log('Analytics: Calculated metrics:', {
+      totalProjects,
+      totalTasks,
+      completedProjects,
+      completedTasks,
+      overdueTasks
+    })
 
     // Group data for charts
     const projectsByStatus = filteredProjects.reduce((acc, project) => {
@@ -107,6 +181,12 @@ const Analytics = () => {
       }
       return acc
     }, {})
+
+    console.log('Analytics: Chart data:', {
+      projectsByStatus,
+      tasksByPriority,
+      tasksByStatus
+    })
 
     // Format data for charts
     const pieChartData = Object.entries(projectsByStatus).map(([name, value]) => ({
