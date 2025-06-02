@@ -6,7 +6,9 @@ const initialState = {
   projects: [],
   currentProject: null,
   isLoading: false,
-  error: null
+  error: null,
+  searchResults: [],
+  isSearching: false
 }
 
 export const useProjectStore = create(
@@ -226,6 +228,26 @@ export const useProjectStore = create(
               : project
           )
         })
+      },
+      
+      searchProjects: async (query) => {
+        try {
+          set({ isSearching: true, error: null })
+          const results = await projectsAPI.search(query)
+          set({ searchResults: results, isSearching: false })
+          return results
+        } catch (error) {
+          set({ 
+            error: error.response?.data?.message || 'Failed to search projects',
+            isSearching: false,
+            searchResults: []
+          })
+          throw error
+        }
+      },
+
+      clearSearch: () => {
+        set({ searchResults: [], isSearching: false })
       },
       
       reset: () => set(initialState)
