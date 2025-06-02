@@ -1,0 +1,146 @@
+.layout {
+  background-color: rgba(0, 0, 0, 0.02);
+  padding: 10px;
+}
+
+.react-grid-item {
+  transition: box-shadow 0.2s ease;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.react-grid-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.react-grid-item .react-resizable-handle {
+  background: transparent;
+  width: 10px;
+  height: 10px;
+}
+
+.react-grid-placeholder {
+  border: 2px dashed #3B82F6;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 0.5rem;
+}
+
+.layout.grid-hover .react-grid-item.react-draggable-dragging ~ .react-grid-item {
+  outline: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Optional: Add a light grid background */
+.layout {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.05) 0px,
+    rgba(0,0,0,0.05) 1px,
+    transparent 1px,
+    transparent 30px
+  ),
+  repeating-linear-gradient(
+    90deg,
+    rgba(0,0,0,0.05) 0px,
+    rgba(0,0,0,0.05) 1px,
+    transparent 1px,
+    transparent 30px
+  );
+}
+
+/* Dark mode grid background */
+.dark .layout {
+  background-color: rgba(255, 255, 255, 0.02);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.05) 0px,
+    rgba(255,255,255,0.05) 1px,
+    transparent 1px,
+    transparent 30px
+  ),
+  repeating-linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 0px,
+    rgba(255,255,255,0.05) 1px,
+    transparent 1px,
+    transparent 30px
+  );
+}
+
+/* Drag handle styles */
+.drag-handle {
+  cursor: move;
+  padding: 0.5rem;
+  color: #6B7280;
+  transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #3B82F6;
+}
+
+/* Quick action buttons */
+.quick-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.react-grid-item:hover .quick-actions {
+  opacity: 1;
+}
+
+.quick-action-btn {
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: #6B7280;
+  transition: all 0.2s ease;
+}
+
+.quick-action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #3B82F6;
+}
+
+/* Progress badge */
+.progress-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Deadline indicator */
+.deadline-indicator {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.deadline-indicator.overdue {
+  color: #EF4444;
+}
+
+.deadline-indicator.due-soon {
+  color: #F59E0B;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .layout {
+    padding: 5px;
+  }
+  
+  .react-grid-item {
+    margin-bottom: 10px;
+  }
+  
+  .quick-actions {
+    opacity: 1;
+  }
+} 

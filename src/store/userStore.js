@@ -1,26 +1,25 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { authAPI } from '../services/api'
+import authAPI from '../services/auth'
 
 export const useUserStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
-      token: localStorage.getItem('token'),
+      token: localStorage.getItem('taskgrid_token'),
       isLoading: false,
       error: null,
+      lastFetchTime: null,
 
       login: async (email, password) => {
         try {
           set({ isLoading: true, error: null })
-          const response = await authAPI.login({ email, password })
-          const { token, user } = response.data
-          localStorage.setItem('token', token)
-          set({ user, token, isLoading: false })
+          const { user } = await authAPI.login(email, password)
+          set({ user, isLoading: false, lastFetchTime: Date.now() })
           return true
         } catch (error) {
           set({
-            error: error.response?.data?.message || 'Login failed',
+            error: error.message || 'Login failed',
             isLoading: false,
           })
           return false
@@ -30,14 +29,41 @@ export const useUserStore = create(
       register: async (email, password, displayName) => {
         try {
           set({ isLoading: true, error: null })
-          const response = await authAPI.register({ email, password, displayName })
-          const { token, user } = response.data
-          localStorage.setItem('token', token)
-          set({ user, token, isLoading: false })
+          
+          // Validate input
+          if (!email || !password || !displayName) {
+            set({
+              error: 'All fields are required',
+              isLoading: false,
+            })
+            return false
+          }
+
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(email)) {
+            set({
+              error: 'Invalid email format',
+              isLoading: false,
+            })
+            return false
+          }
+
+          // Validate password length
+          if (password.length < 6) {
+            set({
+              error: 'Password must be at least 6 characters long',
+              isLoading: false,
+            })
+            return false
+          }
+
+          const { user } = await authAPI.register({ email, password, displayName })
+          set({ user, isLoading: false, lastFetchTime: Date.now() })
           return true
         } catch (error) {
           set({
-            error: error.response?.data?.message || 'Registration failed',
+            error: error.message || 'Registration failed',
             isLoading: false,
           })
           return false
@@ -45,20 +71,28 @@ export const useUserStore = create(
       },
 
       logout: () => {
-        localStorage.removeItem('token')
-        set({ user: null, token: null })
+        authAPI.logout()
+        set({ user: null, token: null, lastFetchTime: null })
       },
 
       getCurrentUser: async () => {
+        const now = Date.now()
+        const lastFetch = get().lastFetchTime
+        if (lastFetch && now - lastFetch < 5 * 60 * 1000) {
+          return get().user
+        }
+
+        set({ isLoading: true, error: null })
         try {
-          set({ isLoading: true, error: null })
-          const response = await authAPI.getCurrentUser()
-          set({ user: response.data, isLoading: false })
+          const user = await authAPI.getCurrentUser()
+          set({ user, isLoading: false, lastFetchTime: now })
+          return user
         } catch (error) {
           set({
-            error: error.response?.data?.message || 'Failed to get user data',
+            error: error.message || 'Failed to get user data',
             isLoading: false,
           })
+          throw error
         }
       },
 
@@ -76,6 +110,8 @@ export const useUserStore = create(
           return false
         }
       },
+
+      clearError: () => set({ error: null }),
     }),
     {
       name: 'user-storage',

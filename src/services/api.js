@@ -1,51 +1,146 @@
 import axios from 'axios';
+import authAPI from './auth';
 
-const API_URL = 'http://localhost:8000/api';
+const TOKEN_KEY = 'taskgrid_token';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add token to requests if it exists
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-// Auth API
-export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login: (data) => api.post('/auth/login', data),
-  getCurrentUser: () => api.get('/auth/me'),
-  updateSettings: (data) => api.patch('/auth/settings', data),
-};
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear token and redirect to auth page
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/auth';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Projects API
 export const projectsAPI = {
-  getAll: () => api.get('/projects'),
-  getById: (id) => api.get(`/projects/${id}`),
-  create: (data) => api.post('/projects', data),
-  update: (id, data) => api.patch(`/projects/${id}`, data),
-  delete: (id) => api.delete(`/projects/${id}`),
-  addMember: (id, data) => api.post(`/projects/${id}/members`, data),
-  removeMember: (id, userId) => api.delete(`/projects/${id}/members/${userId}`),
+  getAll: async () => {
+    try {
+      const response = await api.get('/projects');
+      console.log('API response for getAll:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching projects:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/projects/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching project:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  create: async (projectData) => {
+    try {
+      console.log('Creating project with data:', projectData);
+      const response = await api.post('/projects', projectData);
+      console.log('Project creation response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating project:', error.response?.data || error.message);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
+
+  update: async (id, projectData) => {
+    try {
+      const response = await api.put(`/projects/${id}`, projectData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating project:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      await api.delete(`/projects/${id}`);
+    } catch (error) {
+      console.error('Error deleting project:', error.response?.data || error.message);
+      throw error;
+    }
+  },
 };
 
 // Tasks API
 export const tasksAPI = {
-  getByProject: (projectId) => api.get(`/tasks/project/${projectId}`),
-  getById: (id) => api.get(`/tasks/${id}`),
-  create: (data) => api.post('/tasks', data),
-  update: (id, data) => api.patch(`/tasks/${id}`, data),
-  delete: (id) => api.delete(`/tasks/${id}`),
-  addComment: (id, data) => api.post(`/tasks/${id}/comments`, data),
-  removeComment: (id, commentId) => api.delete(`/tasks/${id}/comments/${commentId}`),
+  getAll: async () => {
+    try {
+      const response = await api.get('/tasks');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getByProject: async (projectId) => {
+    try {
+      const response = await api.get(`/tasks/project/${projectId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  create: async (taskData) => {
+    try {
+      const response = await api.post('/tasks', taskData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, taskData) => {
+    try {
+      const response = await api.put(`/tasks/${id}`, taskData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      await api.delete(`/tasks/${id}`);
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Users API
@@ -57,4 +152,5 @@ export const usersAPI = {
   updateRole: (id, data) => api.patch(`/users/${id}/role`, data),
 };
 
+export { authAPI };
 export default api; 

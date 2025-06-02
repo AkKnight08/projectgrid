@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useProjectStore } from '../store/projectStore'
 import { useUserStore } from '../store/userStore'
 
 const Auth = () => {
