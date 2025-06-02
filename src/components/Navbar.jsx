@@ -11,15 +11,17 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useProjectStore } from '../store/projectStore';
+import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { searchProjects, searchResults, isSearching } = useProjectStore();
+  const { theme, handleThemeChange } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const searchRef = useRef(null);
   const profileRef = useRef(null);
@@ -29,6 +31,24 @@ const Navbar = () => {
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Get colors based on current theme
+  const colors = theme === 'dark' ? DARK_MODE_COLORS : {
+    PAGE_BG: BACKGROUND_COLORS.MAIN,
+    PANEL_BG: '#FFFFFF',
+    CARD_INNER_BG: '#FFFFFF',
+    BORDER: '#E5E5E5',
+    TEXT_PRIMARY: '#1A1A1A',
+    TEXT_SECONDARY: '#666666',
+    TEXT_DISABLED: '#999999',
+    ACCENT_PURPLE: '#7C3AED',
+    ACCENT_TEAL: '#0D9488',
+    ACCENT_ORANGE: '#D97706',
+    ACCENT_RED: '#DC2626',
+    ACCENT_GREEN: '#059669',
+    ICON_DEFAULT: '#666666',
+    ICON_HOVER: '#1A1A1A'
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -82,27 +102,22 @@ const Navbar = () => {
     }
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
-
   return (
-    <nav className="navbar">
+    <nav className={`navbar bg-[${colors.PANEL_BG}] border-b border-[${colors.BORDER}]`}>
       <div className="site-title-container">
-        <Link to="/" className="site-title-link">
-          Plan<span className="accent italic">Pro</span>
+        <Link to="/" className={`site-title-link text-[${colors.TEXT_PRIMARY}]`}>
+          Plan<span className={`accent italic text-[${colors.ACCENT_PURPLE}]`}>Pro</span>
         </Link>
       </div>
 
-      <div className="inspiration-text">
+      <div className={`inspiration-text text-[${colors.TEXT_SECONDARY}]`}>
         "Plan today, achieve tomorrow"
       </div>
 
       <div className="navbar-right">
         <div className="search-container" ref={searchRef}>
           <button 
-            className="search-icon-btn"
+            className={`search-icon-btn text-[${colors.ICON_DEFAULT}] hover:text-[${colors.ICON_HOVER}]`}
             onClick={toggleSearch}
             title="Search"
           >
@@ -110,31 +125,31 @@ const Navbar = () => {
           </button>
           
           {isSearchVisible && (
-            <div className="search-wrapper">
+            <div className={`search-wrapper bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}]`}>
               <input
                 type="text"
-                className="search-input"
+                className={`search-input bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] placeholder:text-[${colors.TEXT_DISABLED}]`}
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={handleSearch}
               />
               {showResults && (searchQuery.trim() || isSearching) && (
-                <div className="search-results-dropdown">
+                <div className={`search-results-dropdown bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}]`}>
                   {isSearching ? (
-                    <div className="search-loading">Searching...</div>
+                    <div className={`search-loading text-[${colors.TEXT_SECONDARY}]`}>Searching...</div>
                   ) : searchResults.length > 0 ? (
                     searchResults.map((project) => (
                       <div
                         key={project._id}
-                        className="search-result-item"
+                        className={`search-result-item hover:bg-[${colors.PANEL_BG}]`}
                         onClick={() => handleResultClick(project._id)}
                       >
-                        <div className="search-result-title">{project.name}</div>
-                        <div className="search-result-description">{project.description}</div>
+                        <div className={`search-result-title text-[${colors.TEXT_PRIMARY}]`}>{project.name}</div>
+                        <div className={`search-result-description text-[${colors.TEXT_SECONDARY}]`}>{project.description}</div>
                         {project.tags && project.tags.length > 0 && (
                           <div className="search-result-tags">
                             {project.tags.map((tag) => (
-                              <span key={tag} className="search-result-tag">
+                              <span key={tag} className={`search-result-tag bg-[${colors.ACCENT_PURPLE}]/10 text-[${colors.ACCENT_PURPLE}]`}>
                                 {tag}
                               </span>
                             ))}
@@ -143,7 +158,7 @@ const Navbar = () => {
                       </div>
                     ))
                   ) : (
-                    <div className="search-no-results">No projects found</div>
+                    <div className={`search-no-results text-[${colors.TEXT_SECONDARY}]`}>No projects found</div>
                   )}
                 </div>
               )}
@@ -152,11 +167,11 @@ const Navbar = () => {
         </div>
 
         <button
-          className="theme-toggle-btn"
-          onClick={toggleTheme}
-          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          className={`theme-toggle-btn text-[${colors.ICON_DEFAULT}] hover:text-[${colors.ICON_HOVER}]`}
+          onClick={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
+          title={theme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
         >
-          {isDarkMode ? (
+          {theme === 'dark' ? (
             <SunIcon className="w-5 h-5" />
           ) : (
             <MoonIcon className="w-5 h-5" />
@@ -165,18 +180,18 @@ const Navbar = () => {
 
         <div className="profile-menu" ref={profileRef}>
           <button
-            className="profile-btn"
+            className={`profile-btn text-[${colors.TEXT_PRIMARY}]`}
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
-            <div className="profile-avatar">AK</div>
-            <ChevronDownIcon className="profile-arrow" />
+            <div className={`profile-avatar bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}]`}>AK</div>
+            <ChevronDownIcon className={`profile-arrow text-[${colors.ICON_DEFAULT}]`} />
           </button>
 
           {showProfileMenu && (
-            <div className="profile-panel">
-              <Link to="/profile" className="profile-item">Profile</Link>
-              <Link to="/settings" className="profile-item">Settings</Link>
-              <button className="profile-item">Sign out</button>
+            <div className={`profile-panel bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}]`}>
+              <Link to="/profile" className={`profile-item text-[${colors.TEXT_PRIMARY}] hover:bg-[${colors.PANEL_BG}]`}>Profile</Link>
+              <Link to="/settings" className={`profile-item text-[${colors.TEXT_PRIMARY}] hover:bg-[${colors.PANEL_BG}]`}>Settings</Link>
+              <button className={`profile-item text-[${colors.ACCENT_RED}] hover:bg-[${colors.PANEL_BG}]`}>Sign out</button>
             </div>
           )}
         </div>

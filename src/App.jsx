@@ -10,6 +10,8 @@ import CalendarView from './pages/CalendarView'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import { useEffect } from 'react'
+import { ThemeProvider } from './context/ThemeContext'
+import Navbar from './components/Navbar'
 
 const PrivateRoute = ({ children }) => {
   const { user, getCurrentUser } = useUserStore()
@@ -24,7 +26,6 @@ const PrivateRoute = ({ children }) => {
 }
 
 const App = () => {
-
   // Apply theme from localStorage on initial load
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'system';
@@ -50,26 +51,31 @@ const App = () => {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="projects" element={<Dashboard />} />
-          <Route path="projects/new" element={<NewProject />} />
-          <Route path="projects/:id" element={<ProjectDetails />} />
-          <Route path="calendar" element={<CalendarView />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
+      <ThemeProvider>
+        <div className="app">
+          <Navbar />
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Layout />
+                </PrivateRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="projects" element={<Dashboard />} />
+              <Route path="projects/new" element={<NewProject />} />
+              <Route path="projects/:id" element={<ProjectDetails />} />
+              <Route path="calendar" element={<CalendarView />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </div>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }
