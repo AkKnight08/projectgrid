@@ -52,10 +52,32 @@ const CalendarView = () => {
     showMilestonesOnly: false
   })
 
+  // Generate years for dropdown (10 years before and after current year)
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i)
+
+  const handleYearChange = (e) => {
+    const newYear = parseInt(e.target.value)
+    setCurrentDate(new Date(newYear, currentDate.getMonth(), 1))
+  }
+
   useEffect(() => {
+    console.log('CalendarView: Fetching projects and tasks...');
     fetchProjects()
     fetchTasks()
   }, []) // Empty dependency array since we only want to fetch once on mount
+
+  useEffect(() => {
+    console.log('CalendarView: Projects updated:', projects);
+    // Log project dates for debugging
+    projects.forEach(project => {
+      console.log(`Project ${project.name}:`, {
+        startDate: project.startDate,
+        endDate: project.endDate,
+        status: project.status
+      });
+    });
+  }, [projects]);
 
   const isLoading = projectsLoading || tasksLoading
   const error = projectsError || tasksError
@@ -119,28 +141,48 @@ const CalendarView = () => {
   // Render header with navigation and view toggles
   const renderHeader = () => (
     <div className="flex justify-between items-center mb-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={goToPrevious}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <ChevronLeftIcon className="h-5 w-5" />
-        </button>
-        <button
-          onClick={goToNext}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <ChevronRightIcon className="h-5 w-5" />
-        </button>
-        <h2 className="text-xl font-semibold">
-          {format(currentDate, currentView === VIEW_TYPES.MONTH ? 'MMMM yyyy' : 'MMMM d, yyyy')}
-        </h2>
-        <button
-          onClick={goToToday}
-          className="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"
-        >
-          Today
-        </button>
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center">
+          <button
+            onClick={goToPrevious}
+            className="p-2 hover:bg-gray-100 rounded-l-md border border-gray-300"
+            title="Previous Month"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={goToNext}
+            className="p-2 hover:bg-gray-100 rounded-r-md border-t border-r border-b border-gray-300"
+            title="Next Month"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-semibold">
+              {format(currentDate, 'MMMM')}
+            </h2>
+            <select
+              value={currentDate.getFullYear()}
+              onChange={handleYearChange}
+              className="text-xl font-semibold bg-transparent border-none focus:ring-0 focus:outline-none cursor-pointer hover:text-primary-600"
+            >
+              {years.map(year => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={goToToday}
+            className="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200"
+          >
+            Today
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -272,6 +314,9 @@ const CalendarView = () => {
     const monthEnd = endOfMonth(currentDate)
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
+    console.log('Rendering month view with projects:', projects);
+    console.log('Current month:', format(monthStart, 'MMMM yyyy'));
+
     return (
       <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
         {/* Day headers */}
@@ -286,11 +331,21 @@ const CalendarView = () => {
           const isCurrentMonth = isSameMonth(day, currentDate)
           const isCurrentDay = isToday(day)
           const dayProjects = (projects || []).filter(project => {
-            if (!project?.startDate || !project?.endDate) return false;
-            const projectStart = new Date(project.startDate)
-            const projectEnd = new Date(project.endDate)
-            return day >= projectStart && day <= projectEnd
+            // If project has no dates, show it in the current month
+            if (!project?.startDate && !project?.endDate) {
+              return isSameMonth(day, currentDate);
+            }
+            // If only one date is set, use it for both start and end
+            const projectStart = new Date(project.startDate || project.endDate)
+            const projectEnd = new Date(project.endDate || project.startDate)
+            const isInRange = day >= projectStart && day <= projectEnd;
+            if (isInRange) {
+              console.log(`Project ${project.name} is in range for ${format(day, 'yyyy-MM-dd')}`);
+            }
+            return isInRange;
           })
+
+          console.log(`Day ${format(day, 'yyyy-MM-dd')} projects:`, dayProjects);
 
           return (
             <div
@@ -333,9 +388,13 @@ const CalendarView = () => {
         {days.map(day => {
           const isCurrentDay = isToday(day)
           const dayProjects = (projects || []).filter(project => {
-            if (!project?.startDate || !project?.endDate) return false;
-            const projectStart = new Date(project.startDate)
-            const projectEnd = new Date(project.endDate)
+            // If project has no dates, show it in the current week
+            if (!project?.startDate && !project?.endDate) {
+              return day >= weekStart && day <= addDays(weekStart, 6);
+            }
+            // If only one date is set, use it for both start and end
+            const projectStart = new Date(project.startDate || project.endDate)
+            const projectEnd = new Date(project.endDate || project.startDate)
             return day >= projectStart && day <= projectEnd
           })
 
@@ -369,9 +428,13 @@ const CalendarView = () => {
   const renderDayView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i)
     const dayProjects = (projects || []).filter(project => {
-      if (!project?.startDate || !project?.endDate) return false;
-      const projectStart = new Date(project.startDate)
-      const projectEnd = new Date(project.endDate)
+      // If project has no dates, show it in the current day
+      if (!project?.startDate && !project?.endDate) {
+        return isSameDay(currentDate, new Date());
+      }
+      // If only one date is set, use it for both start and end
+      const projectStart = new Date(project.startDate || project.endDate)
+      const projectEnd = new Date(project.endDate || project.startDate)
       return isSameDay(currentDate, projectStart) || isSameDay(currentDate, projectEnd)
     })
 
