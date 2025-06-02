@@ -85,51 +85,105 @@ const Analytics = () => {
     ICON_HOVER: '#1A1A1A'
   }
 
-  // Overview cards data
-  const overviewCards = [
-    {
-      title: 'Total Projects',
-      value: metrics.totalProjects || 0,
-      icon: DocumentTextIcon,
-      iconBg: colors.ACCENT_PURPLE + '20',
-      iconColor: colors.ACCENT_PURPLE,
-      trend: 'up',
-      change: '12'
-    },
-    {
-      title: 'Total Tasks',
-      value: metrics.totalTasks || 0,
-      icon: CheckCircleIcon,
-      iconBg: colors.ACCENT_GREEN + '20',
-      iconColor: colors.ACCENT_GREEN,
-      trend: 'up',
-      change: '8'
-    },
-    {
-      title: 'Completion Rate',
-      value: `${metrics.completionRate?.toFixed(1) || 0}%`,
-      icon: ClockIcon,
-      iconBg: colors.ACCENT_TEAL + '20',
-      iconColor: colors.ACCENT_TEAL,
-      trend: 'up',
-      change: '5'
-    },
-    {
-      title: 'Overdue Tasks',
-      value: metrics.overdueTasks || 0,
-      icon: ExclamationTriangleIcon,
-      iconBg: colors.ACCENT_RED + '20',
-      iconColor: colors.ACCENT_RED,
-      trend: 'down',
-      change: '3'
-    }
-  ]
-
-  // Process data for charts
-  const analyticsData = useMemo(() => {
+  // Process data for charts and overview cards
+  const { analyticsData, overviewCards } = useMemo(() => {
     console.log('Processing analytics data with tasks:', tasks)
     console.log('Sample task:', tasks[0]) // Log first task to see structure
     
+    // Calculate month-over-month changes
+    const currentDate = new Date()
+    const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+    
+    // Filter tasks for current and last month
+    const currentMonthTasks = tasks.filter(task => {
+      const taskDate = new Date(task.createdAt)
+      return taskDate >= lastMonth && taskDate <= currentDate
+    })
+    
+    const lastMonthTasks = tasks.filter(task => {
+      const taskDate = new Date(task.createdAt)
+      const twoMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1)
+      return taskDate >= twoMonthsAgo && taskDate < lastMonth
+    })
+
+    // Calculate metrics for current and last month
+    const currentMetrics = {
+      totalTasks: currentMonthTasks.length,
+      completedTasks: currentMonthTasks.filter(t => t.status === 'completed' || t.status === 'done').length,
+      overdueTasks: currentMonthTasks.filter(t => {
+        if (t.status !== 'completed' && t.dueDate) {
+          return new Date(t.dueDate) < currentDate
+        }
+        return false
+      }).length
+    }
+
+    const lastMetrics = {
+      totalTasks: lastMonthTasks.length,
+      completedTasks: lastMonthTasks.filter(t => t.status === 'completed' || t.status === 'done').length,
+      overdueTasks: lastMonthTasks.filter(t => {
+        if (t.status !== 'completed' && t.dueDate) {
+          return new Date(t.dueDate) < lastMonth
+        }
+        return false
+      }).length
+    }
+
+    // Calculate percentage changes
+    const calculateChange = (current, last) => {
+      if (last === 0) return current > 0 ? 100 : 0
+      return ((current - last) / last) * 100
+    }
+
+    const changes = {
+      totalTasks: calculateChange(currentMetrics.totalTasks, lastMetrics.totalTasks),
+      completionRate: calculateChange(
+        currentMetrics.completedTasks / (currentMetrics.totalTasks || 1),
+        lastMetrics.completedTasks / (lastMetrics.totalTasks || 1)
+      ),
+      overdueTasks: calculateChange(currentMetrics.overdueTasks, lastMetrics.overdueTasks)
+    }
+
+    // Create overview cards data
+    const overviewCards = [
+      {
+        title: 'Total Projects',
+        value: metrics.totalProjects || 0,
+        icon: DocumentTextIcon,
+        iconBg: colors.ACCENT_PURPLE + '20',
+        iconColor: colors.ACCENT_PURPLE,
+        trend: changes.totalTasks >= 0 ? 'up' : 'down',
+        change: Math.abs(changes.totalTasks).toFixed(1)
+      },
+      {
+        title: 'Total Tasks',
+        value: currentMetrics.totalTasks,
+        icon: CheckCircleIcon,
+        iconBg: colors.ACCENT_GREEN + '20',
+        iconColor: colors.ACCENT_GREEN,
+        trend: changes.totalTasks >= 0 ? 'up' : 'down',
+        change: Math.abs(changes.totalTasks).toFixed(1)
+      },
+      {
+        title: 'Completion Rate',
+        value: `${((currentMetrics.completedTasks / (currentMetrics.totalTasks || 1)) * 100).toFixed(1)}%`,
+        icon: ClockIcon,
+        iconBg: colors.ACCENT_TEAL + '20',
+        iconColor: colors.ACCENT_TEAL,
+        trend: changes.completionRate >= 0 ? 'up' : 'down',
+        change: Math.abs(changes.completionRate).toFixed(1)
+      },
+      {
+        title: 'Overdue Tasks',
+        value: currentMetrics.overdueTasks,
+        icon: ExclamationTriangleIcon,
+        iconBg: colors.ACCENT_RED + '20',
+        iconColor: colors.ACCENT_RED,
+        trend: changes.overdueTasks <= 0 ? 'up' : 'down',
+        change: Math.abs(changes.overdueTasks).toFixed(1)
+      }
+    ]
+
     // Project Completion Data with detailed metrics
     const projectCompletionData = projects.map(project => {
       const projectTasks = tasks.filter(task => task.project === project._id)
@@ -163,47 +217,57 @@ const Analytics = () => {
       byStatus: [
         { 
           name: 'Not Started', 
-          value: tasks.filter(t => t.status === 'not_started' || t.status === 'not started').length,
+          value: tasks.filter(t => t.status === 'not_started' || t.status === 'not started' || t.status === 'todo').length || 0,
           status: 'not_started'
         },
         { 
           name: 'In Progress', 
-          value: tasks.filter(t => t.status === 'in_progress' || t.status === 'in progress').length,
+          value: tasks.filter(t => t.status === 'in_progress' || t.status === 'in progress' || t.status === 'doing').length || 0,
           status: 'in_progress'
         },
         { 
           name: 'Completed', 
-          value: tasks.filter(t => t.status === 'completed').length,
+          value: tasks.filter(t => t.status === 'completed' || t.status === 'done').length || 0,
           status: 'completed'
         },
         { 
           name: 'On Hold', 
-          value: tasks.filter(t => t.status === 'on_hold' || t.status === 'on hold').length,
+          value: tasks.filter(t => t.status === 'on_hold' || t.status === 'on hold' || t.status === 'blocked').length || 0,
           status: 'on_hold'
         }
       ].filter(item => item.value > 0), // Only show segments with values
       byPriority: [
-        { name: 'Critical', value: tasks.filter(t => t.priority === 'critical').length },
-        { name: 'High', value: tasks.filter(t => t.priority === 'high').length },
-        { name: 'Medium', value: tasks.filter(t => t.priority === 'medium').length },
-        { name: 'Low', value: tasks.filter(t => t.priority === 'low').length }
+        { name: 'Critical', value: tasks.filter(t => t.priority === 'critical' || t.priority === 'high').length || 0 },
+        { name: 'High', value: tasks.filter(t => t.priority === 'high').length || 0 },
+        { name: 'Medium', value: tasks.filter(t => t.priority === 'medium').length || 0 },
+        { name: 'Low', value: tasks.filter(t => t.priority === 'low').length || 0 }
       ].filter(item => item.value > 0),
       byAssignee: Object.entries(
         tasks.reduce((acc, task) => {
           if (task.assignee) {
-            acc[task.assignee] = (acc[task.assignee] || 0) + 1
+            const assigneeName = typeof task.assignee === 'object' ? task.assignee.name : task.assignee;
+            acc[assigneeName] = (acc[assigneeName] || 0) + 1;
           }
-          return acc
+          return acc;
         }, {})
       ).map(([assignee, count]) => ({
         name: assignee,
-        value: count
+        value: count || 0
       }))
     }
 
+    // Calculate total tasks for percentage calculations
+    const totalTasks = tasks.length || 0;
+
+    // Add percentage to each status
+    taskDistributionData.byStatus = taskDistributionData.byStatus.map(item => ({
+      ...item,
+      percentage: totalTasks > 0 ? ((item.value / totalTasks) * 100).toFixed(1) : 0
+    }));
+
     // Debug logs for Task Distribution
     console.log('Task Distribution Data:', {
-      totalTasks: tasks.length,
+      totalTasks,
       byStatus: taskDistributionData.byStatus,
       byPriority: taskDistributionData.byPriority,
       byAssignee: taskDistributionData.byAssignee
@@ -286,13 +350,16 @@ const Analytics = () => {
       ...metrics
     }))
 
-    return {
+    // Process the rest of the analytics data
+    const analyticsData = {
       projectCompletionData,
       taskDistributionData,
       teamPerformanceData,
       activityData: activityTimeline
     }
-  }, [projects, tasks])
+
+    return { analyticsData, overviewCards }
+  }, [projects, tasks, metrics, colors])
 
   const isLoading = projectsLoading || tasksLoading
   const error = projectsError || tasksError
@@ -418,61 +485,77 @@ const Analytics = () => {
                 <p className={`text-sm text-[${colors.TEXT_SECONDARY}] mb-4`}>
                   Monitor how tasks are distributed across different categories and team members.
                 </p>
-                <div className="h-64">
-                  {console.log('Rendering Task Distribution Chart with data:', analyticsData.taskDistributionData.byStatus)}
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={analyticsData.taskDistributionData.byStatus}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        label={({ name, percent }) => {
-                          console.log('Rendering label for:', name, 'with percent:', percent)
-                          return `${name} (${(percent * 100).toFixed(0)}%)`
-                        }}
-                      >
-                        {analyticsData.taskDistributionData.byStatus.map((entry, index) => {
-                          const color = STATUS_COLORS[entry.status] || '#9CA3AF'
-                          console.log('Rendering segment for:', entry.name, 'with color:', color, 'status:', entry.status)
-                          return (
+                <div className="h-64 relative">
+                  {analyticsData.taskDistributionData.byStatus.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ top: 0, right: 80, bottom: 0, left: 0 }}>
+                        <Pie
+                          data={analyticsData.taskDistributionData.byStatus}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="35%"
+                          cy="50%"
+                          innerRadius={0}
+                          outerRadius={65}
+                          paddingAngle={2}
+                          fill="#8884d8"
+                          label={({ name, percentage }) => {
+                            if (!percentage || percentage < 5) return null; // Don't show labels for very small segments
+                            return `${name} (${percentage}%)`;
+                          }}
+                          labelLine={false}
+                        >
+                          {analyticsData.taskDistributionData.byStatus.map((entry, index) => (
                             <Cell 
                               key={`cell-${index}`} 
-                              fill={color}
+                              fill={STATUS_COLORS[entry.status] || '#9CA3AF'}
+                              stroke={colors.CARD_INNER_BG}
+                              strokeWidth={2}
                             />
-                          )
-                        })}
-                      </Pie>
-                      <Tooltip 
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload
-                            console.log('Tooltip data:', data)
-                            return (
-                              <div className={`p-3 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-lg`}>
-                                <p className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>{data.name}</p>
-                                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
-                                  Tasks: {data.value}
-                                </p>
-                                <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
-                                  Percentage: {(data.percent * 100).toFixed(1)}%
-                                </p>
-                              </div>
-                            )
-                          }
-                          return null
-                        }}
-                      />
-                      <Legend 
-                        layout="vertical" 
-                        align="right"
-                        verticalAlign="middle"
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className={`p-3 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-lg shadow-lg`}>
+                                  <p className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>{data.name}</p>
+                                  <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                                    Tasks: {data.value}
+                                  </p>
+                                  <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+                                    Percentage: {data.percentage}%
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend 
+                          layout="vertical" 
+                          align="right"
+                          verticalAlign="middle"
+                          wrapperStyle={{
+                            paddingLeft: '20px',
+                            right: 0,
+                            top: '50%',
+                            transform: 'translateY(-50%)'
+                          }}
+                          formatter={(value, entry) => (
+                            <span className={`text-sm text-[${colors.TEXT_PRIMARY}]`}>{value}</span>
+                          )}
+                          iconType="circle"
+                          iconSize={10}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <p className={`text-sm text-[${colors.TEXT_SECONDARY}]`}>No task distribution data available</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
