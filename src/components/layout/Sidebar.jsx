@@ -64,8 +64,8 @@ const Sidebar = () => {
   return (
     <aside
       ref={sidebarRef}
-      className={`fixed top-[50px] left-0 h-[calc(100vh-50px)] z-30 transition-all duration-300 font-inter flex flex-col justify-between
-        ${isCollapsed ? 'w-16 overflow-x-hidden' : 'w-[250px]'}
+      className={`fixed top-[50px] left-0 h-[calc(100vh-50px)] z-30 transition-all duration-300 font-inter flex flex-col overflow-x-hidden
+        ${isCollapsed ? 'w-16' : 'w-[250px]'}
         bg-charcoalDeep border-r border-slateDark`}
     >
       {/* Top Section */}
