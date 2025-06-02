@@ -8,6 +8,7 @@ import {
   CreditCardIcon,
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
+import { BACKGROUND_COLORS } from '../constants/colors'
 
 const tabs = [
   { id: 'general', name: 'General', icon: Cog6ToothIcon },
@@ -23,9 +24,9 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('general')
 
   return (
-    <div className="h-full bg-[#F5F5F5] p-6 pt-16 pb-12">
+    <div className={`h-screen bg-[${BACKGROUND_COLORS.MAIN}] p-6 pt-16 pb-12 overflow-hidden`}>
       {/* Page Title */}
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto h-full">
         <h1 className="text-[1.5rem] font-semibold text-gray-900 mb-6">Settings</h1>
 
         {/* Breadcrumbs */}
@@ -36,7 +37,7 @@ const Settings = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex gap-8 bg-[#F5F5F5] rounded-lg mt-4">
+        <div className="flex gap-8 bg-[#F5F5F5] rounded-lg mt-4 h-[calc(100%-8rem)]">
           {/* Tab Navigation */}
           <div className="w-[240px] bg-white rounded-lg p-4 flex flex-col gap-2 sticky top-6 h-fit">
             {tabs.map(tab => {
@@ -63,7 +64,7 @@ const Settings = () => {
           </div>
 
           {/* Tab Panels */}
-          <div className="flex-1 bg-white rounded-lg p-8">
+          <div className="flex-1 bg-[#F5F5F5] overflow-y-auto rounded-lg p-8">
             {activeTab === 'general' && (
               <div role="tabpanel" aria-labelledby="tab-general" className="space-y-6">
                 {/* Workspace Information */}
