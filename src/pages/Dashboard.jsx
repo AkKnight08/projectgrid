@@ -9,11 +9,24 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid');
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  const { projects, fetchProjects, isLoading } = useProjectStore();
+  const { projects, fetchProjects, isLoading, metrics } = useProjectStore();
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Calculate stats for QuickStats
+  const stats = {
+    totalProjects: metrics.totalProjects,
+    tasksDueToday: projects.reduce((count, project) => {
+      const today = new Date().toISOString().split('T')[0];
+      return count + (project.tasks?.filter(task => task.dueDate?.split('T')[0] === today).length || 0);
+    }, 0),
+    overdueTasks: metrics.overdueTasks,
+    overallProgress: metrics.completionRate,
+    totalTasks: metrics.totalTasks,
+    completedTasks: metrics.completedTasks,
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -24,7 +37,7 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="quick-stats-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        <QuickStats />
+        <QuickStats stats={stats} />
       </div>
 
       {/* Action Bar */}

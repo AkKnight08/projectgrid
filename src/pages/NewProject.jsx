@@ -438,7 +438,8 @@ const NewProject = () => {
           console.log(`Found user for email ${email}:`, response.data);
           return {
             user: response.data.id,
-            role: 'member'
+            role: 'member',
+            status: 'active'
           };
         } catch (error) {
           // 404 is expected for new users
@@ -460,7 +461,7 @@ const NewProject = () => {
       console.log('Additional members:', additionalMembers);
 
       // Filter out pending members for now
-      const activeMembers = additionalMembers.filter(m => m.user);
+      const activeMembers = additionalMembers.filter(m => m.status === 'active');
       const pendingMembers = additionalMembers.filter(m => m.status === 'pending');
 
       // Ensure dates are in ISO format

@@ -8,7 +8,15 @@ const initialState = {
   isLoading: false,
   error: null,
   searchResults: [],
-  isSearching: false
+  isSearching: false,
+  metrics: {
+    totalProjects: 0,
+    totalTasks: 0,
+    completedProjects: 0,
+    completedTasks: 0,
+    overdueTasks: 0,
+    completionRate: 0
+  }
 }
 
 export const useProjectStore = create(
@@ -22,12 +30,16 @@ export const useProjectStore = create(
           console.log('Fetching projects...')
           const response = await projectsAPI.getAll()
           console.log('Fetched projects:', response)
-          if (!response || !Array.isArray(response)) {
+          if (!response || !response.projects || !Array.isArray(response.projects)) {
             console.error('Invalid response format:', response)
             throw new Error('Invalid response format from server')
           }
-          set({ projects: response, isLoading: false })
-          console.log('Updated projects in state:', response)
+          set({ 
+            projects: response.projects, 
+            metrics: response.metrics,
+            isLoading: false 
+          })
+          console.log('Updated projects in state:', response.projects)
         } catch (error) {
           console.error('Error fetching projects:', error)
           set({ 

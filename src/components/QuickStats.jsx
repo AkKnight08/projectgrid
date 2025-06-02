@@ -2,12 +2,12 @@ import { ChartBarIcon, ClockIcon, ExclamationCircleIcon, CheckCircleIcon } from 
 
 export default function QuickStats({ stats }) {
   const defaultStats = {
-    totalProjects: 12,
-    tasksDueToday: 5,
-    overdueTasks: 3,
-    overallProgress: 68,
-    totalTasks: 50,
-    completedTasks: 34,
+    totalProjects: 0,
+    tasksDueToday: 0,
+    overdueTasks: 0,
+    overallProgress: 0,
+    totalTasks: 0,
+    completedTasks: 0,
   };
 
   const displayStats = stats || defaultStats;

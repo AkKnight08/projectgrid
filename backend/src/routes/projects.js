@@ -1,6 +1,7 @@
 const express = require('express');
 const Project = require('../models/Project');
 const { auth } = require('../middleware/auth');
+const Task = require('../models/Task');
 
 const router = express.Router();
 
@@ -47,85 +48,106 @@ router.get('/search', auth, async (req, res) => {
 // Create project
 router.post('/', auth, async (req, res) => {
   try {
-    console.log('Creating project with data:', req.body);
-    console.log('Current user:', req.user);
-
-    // Validate required fields
-    if (!req.body.name) {
-      return res.status(400).json({ message: 'Project name is required' });
-    }
-
-    if (!req.user.id) {
-      return res.status(400).json({ message: 'User ID is required' });
-    }
-
-    // Prepare project data
-    const projectData = {
-      name: req.body.name,
-      description: req.body.description || '',
-      status: req.body.status || 'active',
-      startDate: req.body.startDate,
-      endDate: req.body.endDate,
-      tags: req.body.tags || [],
-      owner: req.user.id,
-      members: [
-        {
-          user: req.user.id,
-          role: 'admin'
-        }
-      ],
-      settings: {
-        visibility: req.body.settings?.visibility || 'private',
-        allowComments: req.body.settings?.allowComments !== false
-      }
-    };
-
-    // Add additional members if provided
-    if (req.body.members && Array.isArray(req.body.members)) {
-      // Filter out the owner and invalid members
-      const additionalMembers = req.body.members
-        .filter(m => m && m.user && m.user !== req.user.id)
-        .map(m => ({
-          user: m.user,
-          role: m.role || 'member'
-        }));
-      
-      if (additionalMembers.length > 0) {
-        projectData.members.push(...additionalMembers);
-      }
-    }
-
-    // Add pending members if provided
-    if (req.body.pendingMembers && Array.isArray(req.body.pendingMembers)) {
-      projectData.pendingMembers = req.body.pendingMembers
-        .filter(m => m && m.email) // Only include valid pending members
-        .map(member => ({
-          email: member.email,
-          role: member.role || 'member',
-          invitedAt: new Date()
-        }));
-    }
-
-    console.log('Final project data:', projectData);
+    const { name, description, status, startDate, endDate, tags, owner, members, pendingMembers, settings } = req.body;
 
     // Create the project
-    const project = new Project(projectData);
+    const project = new Project({
+      name,
+      description,
+      status,
+      startDate,
+      endDate,
+      tags,
+      owner,
+      members,
+      pendingMembers,
+      settings,
+      layout: {
+        lg: [], md: [], sm: [], xs: [], xxs: []
+      }
+    });
+
+    // Create default tasks/milestones for the project
+    const defaultTasks = [
+      {
+        title: 'Project Planning',
+        description: 'Initial project planning and setup',
+        status: 'todo',
+        priority: 'high',
+        project: project._id,
+        creator: owner,
+        assignee: owner,
+        startDate: startDate,
+        dueDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
+        type: 'milestone',
+        done: false
+      },
+      {
+        title: 'Development Phase',
+        description: 'Main development work',
+        status: 'todo',
+        priority: 'high',
+        project: project._id,
+        creator: owner,
+        assignee: owner,
+        startDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
+        dueDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
+        type: 'milestone',
+        done: false
+      },
+      {
+        title: 'Testing and Review',
+        description: 'Testing and final review phase',
+        status: 'todo',
+        priority: 'high',
+        project: project._id,
+        creator: owner,
+        assignee: owner,
+        startDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
+        dueDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
+        type: 'milestone',
+        done: false
+      },
+      {
+        title: 'Final Delivery',
+        description: 'Project completion and delivery',
+        status: 'todo',
+        priority: 'high',
+        project: project._id,
+        creator: owner,
+        assignee: owner,
+        startDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
+        dueDate: endDate,
+        type: 'milestone',
+        done: false
+      }
+    ];
+
+    // Create the tasks
+    const createdTasks = await Task.insertMany(defaultTasks);
+
+    // Update project with task IDs
+    project.tasks = createdTasks.map(task => task._id);
+
+    // Save the project
     await project.save();
 
-    // Populate owner and members before sending response
-    await project.populate([
-      { path: 'owner', select: 'email displayName' },
-      { path: 'members.user', select: 'email displayName' }
-    ]);
+    // Populate the project with tasks and other references
+    const populatedProject = await Project.findById(project._id)
+      .populate('owner', 'email displayName')
+      .populate('members.user', 'email displayName')
+      .populate({
+        path: 'tasks',
+        populate: [
+          { path: 'assignee', select: 'email displayName' },
+          { path: 'creator', select: 'email displayName' }
+        ]
+      });
 
-    console.log('Project created successfully:', project);
-    res.status(201).json(project);
+    res.status(201).json(populatedProject);
   } catch (error) {
-    console.error('Error creating project:', error);
-    res.status(500).json({ 
-      message: 'Failed to create project',
-      error: error.message 
-    });
+    console.error('Project creation error:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -134,19 +156,89 @@ router.get('/', auth, async (req, res) => {
   try {
     console.log('Fetching projects for user:', req.user._id);
     
+    // Find projects where user is owner or member
     const projects = await Project.find({
       $or: [
         { owner: req.user._id },
         { 'members.user': req.user._id }
       ]
-    }).populate('owner', 'displayName email')
-      .populate('members.user', 'displayName email');
+    })
+    .populate('owner', 'displayName email')
+    .populate('members.user', 'displayName email')
+    .lean();
 
-    console.log('Found projects:', projects.length);
-    res.json(projects);
+    // Get all tasks for these projects
+    const projectIds = projects.map(p => p._id);
+    const tasks = await Task.find({ project: { $in: projectIds } })
+      .populate('assignee', 'displayName email')
+      .populate('creator', 'displayName email')
+      .lean();
+
+    // Attach tasks to their respective projects
+    const projectsWithTasks = projects.map(project => {
+      const projectTasks = tasks.filter(task => 
+        task.project && task.project.toString() === project._id.toString()
+      );
+      
+      // Calculate task metrics
+      const taskMetrics = {
+        total: projectTasks.length,
+        completed: projectTasks.filter(t => t.status === 'done').length,
+        inProgress: projectTasks.filter(t => t.status === 'in-progress').length,
+        todo: projectTasks.filter(t => t.status === 'todo').length,
+        review: projectTasks.filter(t => t.status === 'review').length,
+        overdue: projectTasks.filter(t => 
+          t.status !== 'done' && t.dueDate && new Date(t.dueDate) < new Date()
+        ).length,
+        byPriority: {
+          critical: projectTasks.filter(t => t.priority === 'critical').length,
+          high: projectTasks.filter(t => t.priority === 'high').length,
+          medium: projectTasks.filter(t => t.priority === 'medium').length,
+          low: projectTasks.filter(t => t.priority === 'low').length
+        }
+      };
+
+      // Calculate completion percentage
+      const completionPercentage = projectTasks.length > 0
+        ? (taskMetrics.completed / projectTasks.length) * 100
+        : 0;
+
+      return {
+        ...project,
+        tasks: projectTasks,
+        taskMetrics,
+        completionPercentage: Math.round(completionPercentage * 10) / 10
+      };
+    });
+
+    // Calculate overall metrics
+    const totalProjects = projectsWithTasks.length;
+    const totalTasks = tasks.length;
+    const completedProjects = projectsWithTasks.filter(p => p.status === 'completed').length;
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const overdueTasks = tasks.filter(t => 
+      t.status !== 'done' && t.dueDate && new Date(t.dueDate) < new Date()
+    ).length;
+
+    console.log('Found projects:', totalProjects);
+    res.json({
+      projects: projectsWithTasks,
+      metrics: {
+        totalProjects,
+        totalTasks,
+        completedProjects,
+        completedTasks,
+        overdueTasks,
+        completionRate: totalProjects ? (completedProjects / totalProjects) * 100 : 0
+      }
+    });
   } catch (error) {
     console.error('Error fetching projects:', error);
-    res.status(500).json({ message: 'Error fetching projects' });
+    res.status(500).json({ 
+      message: 'Error fetching projects', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -157,18 +249,59 @@ router.get('/:id', auth, async (req, res) => {
       _id: req.params.id,
       $or: [
         { owner: req.user._id },
-        { 'members.user': req.user._id },
-      ],
-    }).populate('owner', 'displayName email')
-      .populate('members.user', 'displayName email');
+        { 'members.user': req.user._id }
+      ]
+    })
+    .populate('owner', 'displayName email')
+    .populate('members.user', 'displayName email')
+    .lean();
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    res.json(project);
+    // Get all tasks for this project
+    const tasks = await Task.find({ project: project._id })
+      .populate('assignee', 'displayName email')
+      .populate('creator', 'displayName email')
+      .lean();
+
+    // Calculate task metrics
+    const taskMetrics = {
+      total: tasks.length,
+      completed: tasks.filter(t => t.status === 'done').length,
+      inProgress: tasks.filter(t => t.status === 'in-progress').length,
+      todo: tasks.filter(t => t.status === 'todo').length,
+      review: tasks.filter(t => t.status === 'review').length,
+      overdue: tasks.filter(t => 
+        t.status !== 'done' && t.dueDate && new Date(t.dueDate) < new Date()
+      ).length,
+      byPriority: {
+        critical: tasks.filter(t => t.priority === 'critical').length,
+        high: tasks.filter(t => t.priority === 'high').length,
+        medium: tasks.filter(t => t.priority === 'medium').length,
+        low: tasks.filter(t => t.priority === 'low').length
+      }
+    };
+
+    // Calculate completion percentage
+    const completionPercentage = tasks.length > 0
+      ? (taskMetrics.completed / tasks.length) * 100
+      : 0;
+
+    res.json({
+      ...project,
+      tasks,
+      taskMetrics,
+      completionPercentage: Math.round(completionPercentage * 10) / 10
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching project' });
+    console.error('Error fetching project:', error);
+    res.status(500).json({ 
+      message: 'Error fetching project', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

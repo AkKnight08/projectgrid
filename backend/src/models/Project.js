@@ -79,6 +79,10 @@ const projectSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  tasks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task'
+  }],
   settings: {
     visibility: {
       type: String,
@@ -144,6 +148,7 @@ projectSchema.index({ name: 'text', description: 'text' });
 projectSchema.index({ owner: 1 });
 projectSchema.index({ 'members.user': 1 });
 projectSchema.index({ 'pendingMembers.email': 1 });
+projectSchema.index({ tasks: 1 });
 
 const Project = mongoose.model('Project', projectSchema);
 

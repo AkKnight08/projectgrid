@@ -333,12 +333,12 @@ const ProjectGrid = ({
                 <div className="task-preview">
                   <div className="task-list">
                     {project.tasks.map(task => (
-                      <div key={task.id} className={`task-item ${task.done ? 'done' : ''}`}>
+                      <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.done ? 'done' : ''}`}>
                         <label className="task-checkbox-container">
                           <input
                             type="checkbox"
                             checked={task.done}
-                            onChange={() => onUpdateTask(project.id, task.id, { done: !task.done })}
+                            onChange={() => onUpdateTask(project.id, task._id || task.id, { done: !task.done })}
                             className="task-checkbox"
                           />
                           <span className="checkmark"></span>
