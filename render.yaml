@@ -1,0 +1,9 @@
+services:
+  - name: flow-manager
+    type: web
+    dockerfile: Dockerfile
+    env:
+      NODE_ENV: production
+    buildCommand: npm run build
+    startCommand: npm run preview -- --port 8080
+    rootDirectory: /
