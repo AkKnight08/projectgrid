@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import {
@@ -287,6 +287,32 @@ const ProjectGrid = ({
           >
             {filteredProjects.map(project => {
               const layout = layouts.lg?.find(l => l.i === project.id) || { x: 0, y: 0, w: 3, h: 3 };
+              const [expanded, setExpanded] = useState(false);
+              const [draggedTaskIdx, setDraggedTaskIdx] = useState(null);
+              const [dragOverIdx, setDragOverIdx] = useState(null);
+              const [tasksOrder, setTasksOrder] = useState(project.tasks);
+              useEffect(() => { setTasksOrder(project.tasks); }, [project.tasks]);
+              const visibleTasks = expanded ? tasksOrder : tasksOrder.slice(0, 5);
+              const handleDragStart = idx => setDraggedTaskIdx(idx);
+              const handleDragEnter = idx => setDragOverIdx(idx);
+              const handleDragEnd = () => {
+                if (draggedTaskIdx !== null && dragOverIdx !== null && draggedTaskIdx !== dragOverIdx) {
+                  const newOrder = [...tasksOrder];
+                  const [removed] = newOrder.splice(draggedTaskIdx, 1);
+                  newOrder.splice(dragOverIdx, 0, removed);
+                  setTasksOrder(newOrder);
+                  // Persist new order
+                  if (onUpdateTask) {
+                    newOrder.forEach((task, i) => {
+                      if (task.order !== i) {
+                        onUpdateTask(project.id, task._id || task.id, { order: i });
+                      }
+                    });
+                  }
+                }
+                setDraggedTaskIdx(null);
+                setDragOverIdx(null);
+              };
               return (
                 <div
                   key={project.id}
@@ -316,11 +342,25 @@ const ProjectGrid = ({
                     </div>
                     <div className="task-list-preview mt-2">
                       <div className="task-list-scroll">
-                        {project.tasks && project.tasks.length > 0 ? (
+                        {tasksOrder && tasksOrder.length > 0 ? (
                           <>
-                            {project.tasks.slice(0, 5).map((task, idx) => (
-                              <div key={task._id || task.id || idx} className="flex items-center gap-2 text-gray-300 mb-1">
-                                <label className="custom-checkbox">
+                            {visibleTasks.map((task, idx) => (
+                              <div
+                                key={task._id || task.id || idx}
+                                className={`flex items-center mb-1 bg-opacity-70 relative ${draggedTaskIdx === idx ? 'bg-blue-900' : dragOverIdx === idx ? 'bg-blue-800' : ''}`}
+                                draggable
+                                onDragStart={() => handleDragStart(idx)}
+                                onDragEnter={() => draggedTaskIdx !== null && handleDragEnter(idx)}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={e => e.preventDefault()}
+                              >
+                                {/* Tooltip for description */}
+                                {task.description && (
+                                  <div className={`task-tooltip${idx <= 1 ? ' task-tooltip-below' : ''}`}>
+                                    {task.description}
+                                  </div>
+                                )}
+                                <label className="custom-checkbox mr-2">
                                   <input
                                     type="checkbox"
                                     checked={task.status === 'completed'}
@@ -333,11 +373,33 @@ const ProjectGrid = ({
                                   />
                                   <span className={`circle${task.status === 'completed' ? ' checked' : ''}`}></span>
                                 </label>
-                                <span className={task.status === 'completed' ? 'line-through text-gray-500' : ''}>{task.title}</span>
+                                <span className={task.status === 'completed' ? 'line-through text-gray-500' : ''} style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{task.title}</span>
+                                {task.dueDate && (
+                                  <span className="text-gray-400 text-xs ml-2" style={{minWidth: '56px', textAlign: 'right', display: 'inline-block'}}>
+                                    {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    {task.status !== 'completed' && (() => {
+                                      const now = new Date();
+                                      const due = new Date(task.dueDate);
+                                      const diff = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+                                      if (!isNaN(diff)) {
+                                        if (diff === 0) {
+                                          return <span className="ml-1 text-red-400">(Today)</span>;
+                                        } else if (diff > 0) {
+                                          return <span className="ml-1 text-red-400">({diff}d left)</span>;
+                                        } else if (diff < 0) {
+                                          return <span className="ml-1 text-red-400">({Math.abs(diff)}d ago)</span>;
+                                        }
+                                      }
+                                      return null;
+                                    })()}
+                                  </span>
+                                )}
                               </div>
                             ))}
                             {project.tasks.length > 5 && (
-                              <div className="text-xs text-gray-500 ml-5">+{project.tasks.length - 5} more</div>
+                              <button className="text-xs text-blue-400 hover:underline ml-2 mt-1" onClick={() => setExpanded(e => !e)}>
+                                {expanded ? 'Show less' : `Show more (${project.tasks.length - 5} more)`}
+                              </button>
                             )}
                           </>
                         ) : (

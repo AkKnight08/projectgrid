@@ -531,7 +531,7 @@
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   min-height: 1.5rem;
-  font-size: 0.85rem;
+  font-size: 0.89rem;
 }
 .task-list-preview .line-through {
   text-decoration: line-through;
@@ -569,4 +569,33 @@
 .custom-checkbox .circle.checked {
   background: #22d47b;
   border-color: #22d47b;
+}
+
+.task-list-scroll .flex.items-center.relative:hover .task-tooltip {
+  opacity: 1;
+  pointer-events: auto;
+}
+.task-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: 120%;
+  transform: translateX(-50%);
+  min-width: 180px;
+  max-width: 260px;
+  background: rgba(20, 24, 40, 0.98);
+  color: #b0c4ff;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+  transition: opacity 0.2s;
+  white-space: pre-line;
+}
+
+.task-tooltip-below {
+  top: 120%;
+  bottom: auto;
 }
