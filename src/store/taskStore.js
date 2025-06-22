@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { tasksAPI } from '../services/api'
+import { useProjectStore } from './projectStore'
 
 export const useTaskStore = create((set, get) => ({
   tasks: [],
@@ -60,6 +61,12 @@ export const useTaskStore = create((set, get) => ({
         ),
         isLoading: false
       }))
+      
+      // After updating a task, recalculate the progress for the relevant project
+      if (task.project) {
+        useProjectStore.getState().recalculateProgress(task.project, task)
+      }
+      
       return task
     } catch (error) {
       set({ 

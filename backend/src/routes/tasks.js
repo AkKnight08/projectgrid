@@ -157,10 +157,24 @@ router.put('/:id', auth, async (req, res) => {
       task[update] = req.body[update];
     });
 
+    if (updates.includes('status')) {
+      if (req.body.status === 'completed') {
+        task.completedAt = new Date();
+      } else {
+        task.completedAt = null;
+      }
+    }
+
     await task.save();
-    res.json(task);
+    
+    const populatedTask = await Task.findById(task._id)
+      .populate('assignee', 'displayName email')
+      .populate('creator', 'displayName email');
+
+    res.json(populatedTask);
   } catch (error) {
-    res.status(500).json({ message: 'Error updating task' });
+    console.error('Error updating task:', error);
+    res.status(500).json({ message: 'Error updating task', error: error.message });
   }
 });
 

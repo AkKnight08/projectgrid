@@ -19,6 +19,65 @@ const initialState = {
   }
 }
 
+const calculateProjectProgress = (project) => {
+  if (!project.tasks || project.tasks.length === 0) {
+    return 0
+  }
+  const completedTasks = project.tasks.filter(t => t.status === 'completed' || t.status === 'done').length
+  return Math.round((completedTasks / project.tasks.length) * 100)
+}
+
+const calculateGlobalMetrics = (projects) => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const currentProjects = projects;
+  const previousProjects = projects.filter(p => new Date(p.createdAt) < thirtyDaysAgo);
+
+  const calculateMetricsForPeriod = (projectList) => {
+    if (!projectList || projectList.length === 0) {
+      return {
+        totalProjects: 0,
+        totalTasks: 0,
+        completedProjects: 0,
+        completedTasks: 0,
+        overdueTasks: 0,
+        completionRate: 0,
+      };
+    }
+
+    const totalProjects = projectList.length;
+    const completedProjects = projectList.filter(p => p.status === 'completed').length;
+    
+    const allTasks = projectList.flatMap(p => p.tasks || []);
+    const totalTasks = allTasks.length;
+    const completedTasks = allTasks.filter(t => t.status === 'completed' || t.status === 'done').length;
+
+    const overdueTasks = allTasks.filter(t => {
+        if ((t.status !== 'completed' && t.status !== 'done') && t.dueDate) {
+            return new Date(t.dueDate) < new Date();
+        }
+        return false;
+    }).length;
+
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    return {
+        totalProjects,
+        totalTasks,
+        completedProjects,
+        completedTasks,
+        overdueTasks,
+        completionRate,
+    };
+  };
+
+  return {
+    current: calculateMetricsForPeriod(currentProjects),
+    previous: calculateMetricsForPeriod(previousProjects),
+  };
+}
+
 export const useProjectStore = create(
   persist(
     (set, get) => ({
@@ -26,22 +85,26 @@ export const useProjectStore = create(
       
       fetchProjects: async () => {
         try {
-          set({ isLoading: true, error: null, projects: [] })
-          console.log('Fetching projects...')
+          set({ isLoading: true, error: null })
           const response = await projectsAPI.getAll()
-          console.log('Fetched projects:', response)
-          if (!response || !response.projects || !Array.isArray(response.projects)) {
-            console.error('Invalid response format:', response)
-            throw new Error('Invalid response format from server')
+          const projects = response.data.projects || response.data || [];
+          
+          if (!Array.isArray(projects)) {
+            console.error('Invalid response format from server: projects is not an array', response.data)
+            throw new Error('Invalid response format from server.')
           }
+          
+          const projectsWithProgress = projects.map(p => ({
+            ...p,
+            progress: calculateProjectProgress(p),
+          }))
+
           set({ 
-            projects: response.projects, 
-            metrics: response.metrics,
+            projects: projectsWithProgress, 
+            metrics: calculateGlobalMetrics(projectsWithProgress),
             isLoading: false 
           })
-          console.log('Updated projects in state:', response.projects)
         } catch (error) {
-          console.error('Error fetching projects:', error)
           set({ 
             error: error.response?.data?.message || 'Failed to fetch projects',
             isLoading: false,
@@ -51,10 +114,11 @@ export const useProjectStore = create(
       },
       
       fetchProjectById: async (id) => {
+        if (!id) return
         try {
           set({ isLoading: true, error: null })
           const response = await projectsAPI.getById(id)
-          set({ currentProject: response, isLoading: false })
+          set({ currentProject: response.data, isLoading: false })
         } catch (error) {
           set({
             error: error.response?.data?.message || 'Failed to fetch project',
@@ -66,20 +130,17 @@ export const useProjectStore = create(
       createProject: async (projectData) => {
         try {
           set({ isLoading: true, error: null })
-          console.log('Creating project with data:', projectData)
           const response = await projectsAPI.create(projectData)
-          console.log('Project created successfully:', response)
-          const currentState = get()
-          console.log('Current projects in state:', currentState.projects)
-          const updatedProjects = [...(currentState.projects || []), response]
-          set({
-            projects: updatedProjects,
-            isLoading: false
+          set(state => {
+            const newProjects = [...state.projects, response.data];
+            return {
+              projects: newProjects,
+              metrics: calculateGlobalMetrics(newProjects),
+              isLoading: false
+            }
           })
-          console.log('Updated projects in state:', updatedProjects)
-          return response
+          return response.data
         } catch (error) {
-          console.error('Error creating project:', error)
           set({ 
             error: error.response?.data?.message || 'Failed to create project',
             isLoading: false 
@@ -90,16 +151,31 @@ export const useProjectStore = create(
       
       updateProject: async (id, projectData) => {
         try {
-          set({ isLoading: true, error: null })
-          const updatedProject = await projectsAPI.update(id, projectData)
+          const response = await projectsAPI.update(id, projectData)
+          const updatedProject = response.data;
           
-          set(state => ({
-            projects: state.projects.map(p => 
-              p._id === id ? { ...p, ...updatedProject } : p
-            ),
-            currentProject: state.currentProject?._id === id ? { ...state.currentProject, ...updatedProject } : state.currentProject,
-            isLoading: false
-          }))
+          set(state => {
+            const projects = state.projects.map(p => {
+              if (p._id === id) {
+                const newProjectData = { ...p, ...updatedProject }
+                return {
+                  ...newProjectData,
+                  progress: calculateProjectProgress(newProjectData),
+                }
+              }
+              return p
+            })
+            const currentProject = state.currentProject?._id === id
+              ? { ...state.currentProject, ...updatedProject, progress: calculateProjectProgress({ ...state.currentProject, ...updatedProject }) }
+              : state.currentProject
+
+            return {
+              projects,
+              currentProject,
+              metrics: calculateGlobalMetrics(projects),
+              isLoading: false,
+            }
+          })
           return updatedProject
         } catch (error) {
           set({ 
@@ -114,11 +190,14 @@ export const useProjectStore = create(
         try {
           set({ isLoading: true, error: null })
           await projectsAPI.delete(id)
-          const currentState = get()
-          set({
-            projects: (currentState.projects || []).filter(p => p._id !== id),
-            currentProject: currentState.currentProject?._id === id ? null : currentState.currentProject,
-            isLoading: false
+          set(state => {
+            const newProjects = state.projects.filter(p => p._id !== id);
+            return {
+              projects: newProjects,
+              currentProject: state.currentProject?._id === id ? null : state.currentProject,
+              metrics: calculateGlobalMetrics(newProjects),
+              isLoading: false
+            }
           })
         } catch (error) {
           set({ 
@@ -131,121 +210,122 @@ export const useProjectStore = create(
       
       addMember: async (projectId, userId, role) => {
         try {
-          set({ isLoading: true, error: null })
           const response = await projectsAPI.addMember(projectId, { userId, role })
-          const currentState = get()
-          set({
-            projects: (currentState.projects || []).map(project =>
-              project._id === projectId ? response.data : project
-            ),
-            currentProject: response.data,
-            isLoading: false,
-          })
-          return true
+          const updatedProject = response.data;
+          set(state => {
+            const projects = state.projects.map(p => (p._id === projectId ? updatedProject : p));
+            return {
+              projects,
+              currentProject: state.currentProject?._id === projectId ? updatedProject : state.currentProject,
+              metrics: calculateGlobalMetrics(projects),
+            };
+          });
+          return updatedProject;
         } catch (error) {
           set({
             error: error.response?.data?.message || 'Failed to add member',
             isLoading: false,
-          })
-          return false
+          });
+          throw error;
         }
       },
       
       removeMember: async (projectId, userId) => {
         try {
-          set({ isLoading: true, error: null })
           const response = await projectsAPI.removeMember(projectId, userId)
-          const currentState = get()
-          set({
-            projects: (currentState.projects || []).map(project =>
-              project._id === projectId ? response.data : project
-            ),
-            currentProject: response.data,
-            isLoading: false,
-          })
-          return true
+          const updatedProject = response.data;
+          set(state => {
+            const projects = state.projects.map(p => (p._id === projectId ? updatedProject : p));
+            return {
+              projects,
+              currentProject: state.currentProject?._id === projectId ? updatedProject : state.currentProject,
+              metrics: calculateGlobalMetrics(projects),
+            };
+          });
+          return updatedProject;
         } catch (error) {
           set({
             error: error.response?.data?.message || 'Failed to remove member',
             isLoading: false,
-          })
-          return false
+          });
+          throw error;
         }
       },
       
       addTask: (projectId, task) => {
-        const currentState = get()
-        set({
-          projects: (currentState.projects || []).map(project =>
-            project.id === projectId
+        set(state => {
+          const projects = state.projects.map(project =>
+            project._id === projectId
               ? {
                   ...project,
-                  tasks: [...(project.tasks || []), { ...task, id: crypto.randomUUID() }]
+                  tasks: [...(project.tasks || []), { ...task, _id: crypto.randomUUID() }]
                 }
               : project
-          )
-        })
+          );
+          return { projects, metrics: calculateGlobalMetrics(projects) };
+        });
       },
       
       updateTask: (projectId, taskId, updates) => {
-        const currentState = get()
-        set({
-          projects: (currentState.projects || []).map(project =>
-            project.id === projectId
+        set(state => {
+          const projects = state.projects.map(project =>
+            project._id === projectId
               ? {
                   ...project,
                   tasks: (project.tasks || []).map(task =>
-                    task.id === taskId ? { ...task, ...updates } : task
+                    task._id === taskId ? { ...task, ...updates } : task
                   )
                 }
               : project
-          )
-        })
+          );
+          return { projects, metrics: calculateGlobalMetrics(projects) };
+        });
       },
       
       deleteTask: (projectId, taskId) => {
-        const currentState = get()
-        set({
-          projects: (currentState.projects || []).map(project =>
-            project.id === projectId
+        set(state => {
+          const projects = state.projects.map(project =>
+            project._id === projectId
               ? {
                   ...project,
-                  tasks: (project.tasks || []).filter(task => task.id !== taskId)
+                  tasks: (project.tasks || []).filter(task => task._id !== taskId)
                 }
               : project
-          )
-        })
+          );
+          return { projects, metrics: calculateGlobalMetrics(projects) };
+        });
       },
       
       reorderTasks: (projectId, taskIds) => {
-        const currentState = get()
-        set({
-          projects: (currentState.projects || []).map(project =>
-            project.id === projectId
+        set(state => {
+          const projects = state.projects.map(project =>
+            project._id === projectId
               ? {
                   ...project,
                   tasks: taskIds.map(id =>
-                    (project.tasks || []).find(task => task.id === id)
+                    (project.tasks || []).find(task => task._id === id)
                   )
                 }
               : project
-          )
-        })
+          );
+          return { projects };
+        });
       },
       
       searchProjects: async (query) => {
+        if (!query) {
+          set({ searchResults: [], isSearching: false });
+          return;
+        }
         try {
-          set({ isSearching: true, error: null })
-          const results = await projectsAPI.search(query)
-          set({ searchResults: results, isSearching: false })
-          return results
+          set({ isSearching: true, error: null });
+          const response = await projectsAPI.search(query);
+          set({ searchResults: response.data, isSearching: false });
         } catch (error) {
-          set({ 
+          set({
             error: error.response?.data?.message || 'Failed to search projects',
             isSearching: false,
-            searchResults: []
-          })
-          throw error
+          });
         }
       },
 
@@ -253,10 +333,50 @@ export const useProjectStore = create(
         set({ searchResults: [], isSearching: false })
       },
       
-      reset: () => set(initialState)
+      reset: () => set(initialState),
+      
+      recalculateProgress: (projectId, updatedTask) => {
+        set(state => {
+          const newProjects = state.projects.map(p => {
+            if (p._id === projectId) {
+              const projectWithUpdatedTask = { ...p };
+              if (updatedTask) {
+                projectWithUpdatedTask.tasks = p.tasks.map(t => (t._id === updatedTask._id ? updatedTask : t));
+              }
+              return { ...projectWithUpdatedTask, progress: calculateProjectProgress(projectWithUpdatedTask) };
+            }
+            return p
+          })
+          return {
+            projects: newProjects,
+            metrics: calculateGlobalMetrics(newProjects)
+          }
+        })
+      },
+
+      updateTaskStatus: (projectId, taskId, status) => {
+        set(state => {
+            const projects = state.projects.map(p => {
+                if (p._id === projectId) {
+                    const tasks = p.tasks.map(t => t._id === taskId ? { ...t, status } : t);
+                    const newProjectData = { ...p, tasks };
+                    return {
+                        ...newProjectData,
+                        progress: calculateProjectProgress(newProjectData)
+                    };
+                }
+                return p;
+            });
+
+            return { 
+                projects,
+                metrics: calculateGlobalMetrics(projects)
+            };
+        });
+      },
     }),
     {
-      name: 'project-storage',
+      name: 'project-store',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         projects: state.projects || [],

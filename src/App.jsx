@@ -18,6 +18,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProjectGrid from './components/ProjectGrid'
+import ProjectSettings from './components/projects/ProjectSettings'
 
 const PrivateRoute = ({ children }) => {
   const { user, getCurrentUser } = useUserStore()
@@ -79,6 +80,7 @@ function App() {
           <Route path="projects" element={<ProjectGrid />} />
           <Route path="projects/new" element={<NewProject />} />
           <Route path="projects/:id" element={<ProjectDetails />} />
+          <Route path="projects/edit/:id" element={<ProjectSettings />} />
           <Route path="calendar" element={<CalendarView />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />

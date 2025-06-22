@@ -3,6 +3,7 @@ import QuickStats from '../components/QuickStats';
 import ProjectGrid from '../components/ProjectGrid';
 import DashboardStats from '../components/DashboardStats';
 import { useProjectStore } from '../store/projectStore';
+import { useTaskStore } from '../store/taskStore';
 import { useTheme } from '../context/ThemeContext';
 import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors';
 
@@ -12,11 +13,18 @@ export default function Dashboard() {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const { projects, fetchProjects, isLoading, metrics } = useProjectStore();
+  const { updateTask } = useTaskStore();
   const { theme } = useTheme();
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  const handleUpdateTask = async (projectId, taskId, updates) => {
+    await updateTask(taskId, updates);
+    // The projectStore is already set up to recalculate progress when a task is updated.
+    // No need to call fetchProjects() again, which would be inefficient.
+  };
 
   // Get colors based on current theme
   const colors = theme === 'dark' ? DARK_MODE_COLORS : {
@@ -36,30 +44,32 @@ export default function Dashboard() {
     ICON_HOVER: '#1A1A1A'
   };
 
+  const currentMetrics = metrics?.current || {};
+  const previousMetrics = metrics?.previous || {};
+
   // Calculate stats for QuickStats
   const stats = {
-    totalProjects: metrics.totalProjects,
+    totalProjects: currentMetrics.totalProjects || 0,
     tasksDueToday: projects.reduce((count, project) => {
       const today = new Date().toISOString().split('T')[0];
       return count + (project.tasks?.filter(task => task.dueDate?.split('T')[0] === today).length || 0);
     }, 0),
-    overdueTasks: metrics.overdueTasks,
-    overallProgress: metrics.completionRate,
-    totalTasks: metrics.totalTasks,
-    completedTasks: metrics.completedTasks,
+    overdueTasks: currentMetrics.overdueTasks || 0,
+    overallProgress: currentMetrics.completionRate || 0,
   };
 
   // Calculate percentage changes
   const calculatePercentageChange = (current, previous) => {
-    if (!previous) return 0;
+    if (previous === 0) {
+      return current > 0 ? 100 : 0; // Avoid division by zero
+    }
     return ((current - previous) / previous) * 100;
   };
 
   const percentageChanges = {
-    totalProjects: calculatePercentageChange(metrics.totalProjects, metrics.previousTotalProjects || 0),
-    tasksDueToday: calculatePercentageChange(stats.tasksDueToday, metrics.previousTasksDueToday || 0),
-    overdueTasks: calculatePercentageChange(metrics.overdueTasks, metrics.previousOverdueTasks || 0),
-    overallProgress: calculatePercentageChange(metrics.completionRate, metrics.previousCompletionRate || 0),
+    totalProjects: calculatePercentageChange(currentMetrics.totalProjects, previousMetrics.totalProjects),
+    overdueTasks: calculatePercentageChange(currentMetrics.overdueTasks, previousMetrics.overdueTasks),
+    overallProgress: calculatePercentageChange(currentMetrics.completionRate, previousMetrics.completionRate),
   };
 
   // Format percentage for display
@@ -101,6 +111,7 @@ export default function Dashboard() {
                     {formatPercentage(percentageChanges.totalProjects)}
                   </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">vs last month</p>
               </div>
 
               {/* Tasks Due Today Card */}
@@ -115,10 +126,8 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-baseline justify-between">
                   <p className={`text-2xl font-bold text-[${colors.TEXT_PRIMARY}]`}>{stats.tasksDueToday}</p>
-                  <span className={`text-sm font-medium ${percentageChanges.tasksDueToday >= 0 ? `text-[${colors.ACCENT_GREEN}]` : `text-[${colors.ACCENT_RED}]`}`}>
-                    {formatPercentage(percentageChanges.tasksDueToday)}
-                  </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">due today</p>
               </div>
 
               {/* Overdue Tasks Card */}
@@ -137,6 +146,7 @@ export default function Dashboard() {
                     {formatPercentage(percentageChanges.overdueTasks)}
                   </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">vs last month</p>
               </div>
 
               {/* Overall Progress Card */}
@@ -155,6 +165,7 @@ export default function Dashboard() {
                     {formatPercentage(percentageChanges.overallProgress)}
                   </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">vs last month</p>
               </div>
             </div>
 
@@ -201,6 +212,7 @@ export default function Dashboard() {
                   viewMode="grid"
                   filter={filter}
                   sortBy={sortBy}
+                  onUpdateTask={handleUpdateTask}
                 />
               )}
             </div>
@@ -209,4 +221,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-} 
+}

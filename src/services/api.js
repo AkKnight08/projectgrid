@@ -71,70 +71,14 @@ api.interceptors.response.use(
 
 // Projects API
 export const projectsAPI = {
-  getAll: async () => {
-    try {
-      const response = await api.get('/projects');
-      console.log('API response for getAll:', response);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching projects:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  search: async (query) => {
-    try {
-      const response = await api.get(`/projects/search?q=${encodeURIComponent(query)}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error searching projects:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  getById: async (id) => {
-    try {
-      const response = await api.get(`/projects/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching project:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  create: async (projectData) => {
-    try {
-      console.log('Creating project with data:', projectData);
-      const response = await api.post('/projects', projectData);
-      console.log('Project creation response:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating project:', error.response?.data || error.message);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw error;
-    }
-  },
-
-  update: async (id, projectData) => {
-    try {
-      const response = await api.put(`/projects/${id}`, projectData);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating project:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  delete: async (id) => {
-    try {
-      await api.delete(`/projects/${id}`);
-    } catch (error) {
-      console.error('Error deleting project:', error.response?.data || error.message);
-      throw error;
-    }
-  },
+  getAll: () => api.get('/projects'),
+  getById: (id) => api.get(`/projects/${id}`),
+  create: (data) => api.post('/projects', data),
+  update: (id, data) => api.put(`/projects/${id}`, data),
+  delete: (id) => api.delete(`/projects/${id}`),
+  addMember: (id, memberData) => api.post(`/projects/${id}/members`, memberData),
+  removeMember: (id, userId) => api.delete(`/projects/${id}/members/${userId}`),
+  search: (query) => api.get(`/projects/search?q=${query}`),
 };
 
 // Tasks API

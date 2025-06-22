@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../../store/projectStore';
 import { CodeBracketIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -11,37 +12,56 @@ const Section = ({ title, children }) => (
   </div>
 );
 
-const ProjectSettings = ({ project, onCancel }) => {
-  const { updateProject, isLoading } = useProjectStore();
+const ProjectSettings = () => {
+  const { id: projectId } = useParams();
+  const navigate = useNavigate();
+  
+  const updateProject = useProjectStore(state => state.updateProject);
+  const fetchProjectById = useProjectStore(state => state.fetchProjectById);
+  const project = useProjectStore(state => state.currentProject);
+  const isLoading = useProjectStore(state => state.isLoading);
+  const error = useProjectStore(state => state.error);
+
   const [view, setView] = useState('form'); // 'form' or 'json'
-  const [formData, setFormData] = useState({
-    name: project.name || '',
-    description: project.description || '',
-    status: project.status || 'not started',
-    startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '',
-    endDate: project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '',
-    tags: project.tags?.join(', ') || '',
-    visibility: project.settings?.visibility || 'private',
-    allowComments: project.settings?.allowComments ?? true,
-  });
+  const [formData, setFormData] = useState(null);
   const [jsonString, setJsonString] = useState('');
   const [jsonError, setJsonError] = useState('');
 
   useEffect(() => {
-    const projectDataForJson = {
-      name: formData.name,
-      description: formData.description,
-      status: formData.status,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      settings: {
-        visibility: formData.visibility,
-        allowComments: formData.allowComments
-      }
-    };
-    setJsonString(JSON.stringify(projectDataForJson, null, 2));
-  }, [formData]);
+    if (projectId && projectId !== project?._id) {
+      fetchProjectById(projectId);
+    }
+  }, [projectId, project?._id, fetchProjectById]);
+
+  useEffect(() => {
+    if (project) {
+      const initialFormData = {
+        name: project.name || '',
+        description: project.description || '',
+        status: project.status || 'not started',
+        startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '',
+        endDate: project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '',
+        tags: project.tags?.join(', ') || '',
+        visibility: project.settings?.visibility || 'private',
+        allowComments: project.settings?.allowComments ?? true,
+      };
+      setFormData(initialFormData);
+      
+      const projectDataForJson = {
+        name: initialFormData.name,
+        description: initialFormData.description,
+        status: initialFormData.status,
+        startDate: initialFormData.startDate,
+        endDate: initialFormData.endDate,
+        tags: initialFormData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        settings: {
+          visibility: initialFormData.visibility,
+          allowComments: initialFormData.allowComments
+        }
+      };
+      setJsonString(JSON.stringify(projectDataForJson, null, 2));
+    }
+  }, [project?._id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -83,8 +103,20 @@ const ProjectSettings = ({ project, onCancel }) => {
     }
     
     await updateProject(project._id, updateData);
-    onCancel(); // Exit edit mode
+    navigate(`/projects/${project._id}`); // Go back to project details
   };
+
+  if (isLoading && !formData) {
+    return <div className="text-white text-center p-8">Loading project settings...</div>;
+  }
+  
+  if (error) {
+    return <div className="text-red-400 text-center p-8">Error: {error}</div>;
+  }
+
+  if (!formData) {
+    return <div className="text-white text-center p-8">No project data found.</div>;
+  }
 
   return (
     <div className="bg-gray-900/10 p-4 sm:p-6 rounded-2xl space-y-6 animate-fade-in border border-white/10">
@@ -150,7 +182,7 @@ const ProjectSettings = ({ project, onCancel }) => {
         )}
         
         <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
-          <button type="button" onClick={onCancel} className="px-6 py-2 bg-gray-700/50 rounded-md hover:bg-gray-700/80 transition-colors text-sm font-medium">
+          <button type="button" onClick={() => navigate(`/projects/${project._id}`)} className="px-6 py-2 bg-gray-700/50 rounded-md hover:bg-gray-700/80 transition-colors text-sm font-medium">
             Cancel
           </button>
           <button type="submit" disabled={isLoading} className="px-6 py-2 bg-purple-600 rounded-md hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed transition-colors text-sm font-medium">

@@ -75,7 +75,7 @@ const ProjectGrid = ({
   // Filter and sort projects
   const filteredProjects = transformedProjects
     .filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
       const matchesFilter = filter === 'all' || project.status === filter;
       return matchesSearch && matchesFilter;
     })
@@ -163,6 +163,7 @@ const ProjectGrid = ({
       case 'active': return 'badge-active';
       case 'on-hold': return 'badge-on-hold';
       case 'completed': return 'badge-completed';
+      case 'not started': return 'badge-not-started';
       default: return '';
     }
   };
@@ -301,7 +302,7 @@ const ProjectGrid = ({
                   </Link>
                   <div className="status-group">
                     <span className={getStatusBadgeClass(project.status)}>
-                      {project.status}
+                      {project.status.replace(/-/g, ' ')}
                     </span>
                     {project.hasOverdueTasks && (
                       <span className="overdue-indicator" aria-label="Has overdue tasks">❗</span>
@@ -333,12 +334,17 @@ const ProjectGrid = ({
                 <div className="task-preview">
                   <div className="task-list">
                     {project.tasks.map(task => (
-                      <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.done ? 'done' : ''}`}>
+                      <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.status === 'completed' ? 'done' : ''}`}>
                         <label className="task-checkbox-container">
                           <input
                             type="checkbox"
-                            checked={task.done}
-                            onChange={() => onUpdateTask(project.id, task._id || task.id, { done: !task.done })}
+                            checked={task.status === 'completed'}
+                            onChange={() => {
+                              if (onUpdateTask) {
+                                const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
+                                onUpdateTask(project.id, task._id || task.id, { status: newStatus });
+                              }
+                            }}
                             className="task-checkbox"
                           />
                           <span className="checkmark"></span>

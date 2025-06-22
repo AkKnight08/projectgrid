@@ -37,8 +37,19 @@ const Card = ({ children, className = '' }) => (
 const ProjectDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { currentProject, fetchProjectById, deleteProject, isLoading: projectLoading } = useProjectStore()
-  const { tasks, fetchProjectTasks, updateTask, deleteTask, isLoading: tasksLoading } = useTaskStore()
+  
+  // State from stores
+  const currentProject = useProjectStore(state => state.currentProject)
+  const fetchProjectById = useProjectStore(state => state.fetchProjectById)
+  const deleteProject = useProjectStore(state => state.deleteProject)
+  const projectLoading = useProjectStore(state => state.isLoading)
+  
+  const tasks = useTaskStore(state => state.tasks)
+  const fetchProjectTasks = useTaskStore(state => state.fetchProjectTasks)
+  const updateTask = useTaskStore(state => state.updateTask)
+  const deleteTask = useTaskStore(state => state.deleteTask)
+  const tasksLoading = useTaskStore(state => state.isLoading)
+  
   const [isEditing, setIsEditing] = useState(false)
   const [isAddingTask, setIsAddingTask] = useState(false)
   const { theme } = useTheme()
@@ -62,9 +73,12 @@ const ProjectDetails = () => {
   }
 
   useEffect(() => {
-    fetchProjectById(id)
-    fetchProjectTasks(id)
-  }, [id, fetchProjectById, fetchProjectTasks])
+    // Only fetch if the ID is present and it's different from the current project
+    if (id && id !== currentProject?._id) {
+      fetchProjectById(id)
+      fetchProjectTasks(id)
+    }
+  }, [id, currentProject?._id, fetchProjectById, fetchProjectTasks])
 
   const handleDeleteProject = async () => {
     if (window.confirm('Are you sure you want to delete this project? This action is permanent and cannot be undone.')) {
