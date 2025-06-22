@@ -48,7 +48,7 @@ router.get('/search', auth, async (req, res) => {
 // Create project
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, description, status, startDate, endDate, tags, owner, members, pendingMembers, settings } = req.body;
+    const { name, description, status, startDate, endDate, tags, owner, members, pendingMembers, settings, tasks } = req.body;
 
     // Create the project
     const project = new Project({
@@ -67,64 +67,73 @@ router.post('/', auth, async (req, res) => {
       }
     });
 
-    // Create default tasks/milestones for the project
-    const defaultTasks = [
-      {
-        title: 'Project Planning',
-        description: 'Initial project planning and setup',
-        status: 'todo',
-        priority: 'high',
+    let createdTasks = [];
+    if (Array.isArray(tasks) && tasks.length > 0) {
+      // Create custom tasks/milestones from request
+      const tasksToCreate = tasks.map(task => ({
+        ...task,
         project: project._id,
-        creator: owner,
-        assignee: owner,
-        startDate: startDate,
-        dueDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
-        type: 'milestone',
-        done: false
-      },
-      {
-        title: 'Development Phase',
-        description: 'Main development work',
-        status: 'todo',
-        priority: 'high',
-        project: project._id,
-        creator: owner,
-        assignee: owner,
-        startDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
-        dueDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
-        type: 'milestone',
-        done: false
-      },
-      {
-        title: 'Testing and Review',
-        description: 'Testing and final review phase',
-        status: 'todo',
-        priority: 'high',
-        project: project._id,
-        creator: owner,
-        assignee: owner,
-        startDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
-        dueDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
-        type: 'milestone',
-        done: false
-      },
-      {
-        title: 'Final Delivery',
-        description: 'Project completion and delivery',
-        status: 'todo',
-        priority: 'high',
-        project: project._id,
-        creator: owner,
-        assignee: owner,
-        startDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
-        dueDate: endDate,
-        type: 'milestone',
-        done: false
-      }
-    ];
-
-    // Create the tasks
-    const createdTasks = await Task.insertMany(defaultTasks);
+        creator: req.user._id // authenticated user as creator
+      }));
+      createdTasks = await Task.insertMany(tasksToCreate);
+    } else {
+      // Create default milestone tasks
+      const defaultTasks = [
+        {
+          title: 'Project Planning',
+          description: 'Initial project planning and setup',
+          status: 'todo',
+          priority: 'high',
+          project: project._id,
+          creator: req.user._id,
+          assignee: req.user._id,
+          startDate: startDate,
+          dueDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
+          type: 'milestone',
+          done: false
+        },
+        {
+          title: 'Development Phase',
+          description: 'Main development work',
+          status: 'todo',
+          priority: 'high',
+          project: project._id,
+          creator: req.user._id,
+          assignee: req.user._id,
+          startDate: new Date(new Date(startDate).getTime() + 7 * 24 * 60 * 60 * 1000), // 1 week after start
+          dueDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
+          type: 'milestone',
+          done: false
+        },
+        {
+          title: 'Testing and Review',
+          description: 'Testing and final review phase',
+          status: 'todo',
+          priority: 'high',
+          project: project._id,
+          creator: req.user._id,
+          assignee: req.user._id,
+          startDate: new Date(new Date(endDate).getTime() - 14 * 24 * 60 * 60 * 1000), // 2 weeks before end
+          dueDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
+          type: 'milestone',
+          done: false
+        },
+        {
+          title: 'Final Delivery',
+          description: 'Project completion and delivery',
+          status: 'todo',
+          priority: 'high',
+          project: project._id,
+          creator: req.user._id,
+          assignee: req.user._id,
+          startDate: new Date(new Date(endDate).getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week before end
+          dueDate: endDate,
+          type: 'milestone',
+          done: false
+        }
+      ];
+      createdTasks = await Task.insertMany(defaultTasks);
+    }
 
     // Update project with task IDs
     project.tasks = createdTasks.map(task => task._id);

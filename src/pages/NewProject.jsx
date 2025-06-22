@@ -72,18 +72,35 @@ const projectTemplates = {
 }
 
 const sampleJson = {
-  name: "Instagram Page Growth",
-  description: "Grow social reach by posting 5 reels per week.",
-  tags: ["Social Media", "Marketing"],
+  name: "Website Redesign",
+  description: "A project to redesign the company website.",
+  tags: ["Web Development", "Design", "SEO", "UX"],
   status: "active",
   priority: "high",
-  startDate: "2025-05-20",
-  endDate: "2025-06-20",
-  milestones: [
-    { title: "Plan Content Calendar", date: "2025-05-22" },
-    { title: "First 5 Reels Posted", date: "2025-05-30" }
+  startDate: "2024-07-01",
+  endDate: "2024-08-01",
+  tasks: [
+    {
+      title: "Design Mockups",
+      description: "Create high-fidelity mockups for all main pages.",
+      dueDate: "2024-07-05",
+      assignee: "user_id_1",
+      priority: "high",
+      status: "todo"
+    },
+    {
+      title: "Setup Hosting",
+      description: "Provision and configure the new hosting environment.",
+      dueDate: "2024-07-10",
+      assignee: "user_id_2",
+      priority: "medium",
+      status: "todo"
+    }
   ],
-  collaborators: ["alice@example.com", "bob@example.com"]
+  collaborators: [
+    "john.doe@company.com",
+    "jane.smith@company.com"
+  ]
 }
 
 const jsonTemplates = {
@@ -205,7 +222,7 @@ const NewProject = () => {
     startDate: '',
     endDate: '',
   })
-  const [milestones, setMilestones] = useState([{ title: '', date: '' }])
+  const [milestones, setMilestones] = useState([{ title: '', description: '', date: '' }])
   const [collaborators, setCollaborators] = useState([''])
   const [success, setSuccess] = useState('')
   const [formError, setFormError] = useState('')
@@ -262,7 +279,7 @@ const NewProject = () => {
   }
 
   const addMilestone = () => {
-    const newMilestones = [...milestones, { title: '', date: '' }]
+    const newMilestones = [...milestones, { title: '', description: '', date: '' }]
     setMilestones(newMilestones)
     saveDraft(form, newMilestones, collaborators)
   }
@@ -357,8 +374,8 @@ const NewProject = () => {
       setForm(newForm)
 
       // Update milestones if provided
-      if (Array.isArray(importedData.milestones)) {
-        setMilestones(importedData.milestones)
+      if (Array.isArray(importedData.tasks)) {
+        setMilestones(importedData.tasks)
       }
 
       // Update collaborators if provided
@@ -409,11 +426,20 @@ const NewProject = () => {
     setFormError('')
     setSuccess('')
 
+    // Convert milestones to tasks for backend
+    const tasks = milestones
+      .filter(m => m.title)
+      .map(m => ({
+        title: m.title,
+        description: m.description || '',
+        dueDate: m.date || undefined
+      }))
+
     const projectData = {
       ...form,
       owner: user._id,
       tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      milestones: milestones.filter(m => m.title),
+      tasks,
       collaborators: collaborators.filter(c => c),
     }
 
@@ -425,7 +451,7 @@ const NewProject = () => {
       setSuccess(`Project "${newProject.name}" created successfully!`)
       // Reset form
       setForm({ name: '', description: '', status: 'not started', priority: 'medium', tags: '', startDate: '', endDate: '' })
-      setMilestones([{ title: '', date: '' }])
+      setMilestones([{ title: '', description: '', date: '' }])
       setCollaborators([''])
       localStorage.removeItem(`taskgrid_draft_${user.id}`)
       setTimeout(() => navigate(`/projects/${newProject._id}`), 1500)
@@ -502,22 +528,19 @@ const NewProject = () => {
                   <DocumentDuplicateIcon className="h-5 w-5 mr-1" />
                   {showJsonImport ? 'Hide JSON Import' : 'Import from JSON'}
                 </button>
-                {showJsonImport && (
-                  <select
-                    onChange={(e) => handleJsonTemplateSelect(e.target.value)}
-                    className={`block w-64 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
-                      focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none`}
-                  >
-                    <option value="">Select a JSON template...</option>
-                    <option value="website-redesign">Website Redesign</option>
-                    <option value="quick-project">Quick Project</option>
-                    <option value="marketing-campaign">Marketing Campaign</option>
-                    <option value="api-integration">API Integration</option>
-                  </select>
-                )}
               </div>
               {showJsonImport && (
                 <div className="mt-2">
+                  <div className="flex items-center mb-2 gap-2">
+                    <span className="text-sm text-[${colors.TEXT_SECONDARY}]">Sample JSON:</span>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(JSON.stringify(sampleJson, null, 2))}
+                      className={`px-2 py-1 bg-[${colors.ACCENT_TEAL}] text-white rounded-md text-xs hover:bg-[${colors.ACCENT_TEAL}]/90`}
+                    >
+                      Copy Sample JSON
+                    </button>
+                  </div>
                   <div className="relative">
                     <textarea
                       value={jsonInput}
@@ -691,42 +714,38 @@ const NewProject = () => {
                 <>
                   {/* Milestones */}
                   <div>
-                    <label className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>Milestones</label>
-                    {milestones.map((m, i) => (
+                    <label className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
+                      Milestones / Tasks
+                    </label>
+                    {milestones.map((milestone, i) => (
                       <div key={i} className="flex gap-2 mb-2">
                         <input
                           type="text"
                           name="title"
-                          value={m.title}
-                          onChange={(e) => handleMilestoneChange(i, e)}
-                          placeholder="Milestone Title"
-                          className={`flex-1 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
-                            focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none`}
+                          value={milestone.title}
+                          onChange={e => handleMilestoneChange(i, e)}
+                          placeholder="Milestone/Task Title"
+                          className={`flex-1 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-2 py-1 text-sm`}
+                        />
+                        <input
+                          type="text"
+                          name="description"
+                          value={milestone.description || ''}
+                          onChange={e => handleMilestoneChange(i, e)}
+                          placeholder="Description"
+                          className={`flex-2 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-2 py-1 text-sm`}
                         />
                         <input
                           type="date"
                           name="date"
-                          value={m.date}
-                          onChange={(e) => handleMilestoneChange(i, e)}
-                          className={`bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
-                            focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none`}
+                          value={milestone.date}
+                          onChange={e => handleMilestoneChange(i, e)}
+                          className={`w-36 bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-2 py-1 text-sm`}
                         />
-                        <button
-                          type="button"
-                          onClick={() => removeMilestone(i)}
-                          className={`text-[${colors.ACCENT_RED}] px-2 hover:text-[${colors.ACCENT_RED}]/80`}
-                        >
-                          ✕
-                        </button>
+                        <button type="button" onClick={() => removeMilestone(i)} className={`text-[${colors.ACCENT_RED}] font-bold px-2`}>×</button>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={addMilestone}
-                      className={`text-[${colors.ACCENT_PURPLE}] text-sm mt-1 hover:text-[${colors.ACCENT_PURPLE}]/80`}
-                    >
-                      + Add Milestone
-                    </button>
+                    <button type="button" onClick={addMilestone} className={`mt-2 px-3 py-1 bg-[${colors.ACCENT_TEAL}] text-white rounded-md text-sm`}>Add Milestone/Task</button>
                   </div>
 
                   {/* Collaborators */}
@@ -827,4 +846,4 @@ const NewProject = () => {
   )
 }
 
-export default NewProject 
+export default NewProject

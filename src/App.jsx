@@ -19,6 +19,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProjectGrid from './components/ProjectGrid'
 import ProjectSettings from './components/projects/ProjectSettings'
+import Feedback from './pages/Feedback'
 
 const PrivateRoute = ({ children }) => {
   const { user, getCurrentUser } = useUserStore()
@@ -65,6 +66,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
+        <Route path="/feedback" element={<Feedback />} />
 
         {/* Protected Routes */}
         <Route 
