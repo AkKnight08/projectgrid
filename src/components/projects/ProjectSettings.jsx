@@ -47,6 +47,7 @@ const ProjectSettings = () => {
       };
       setFormData(initialFormData);
       
+      // Include tasks and members in the JSON editor
       const projectDataForJson = {
         name: initialFormData.name,
         description: initialFormData.description,
@@ -57,7 +58,9 @@ const ProjectSettings = () => {
         settings: {
           visibility: initialFormData.visibility,
           allowComments: initialFormData.allowComments
-        }
+        },
+        tasks: project.tasks || [],
+        members: project.members || [],
       };
       setJsonString(JSON.stringify(projectDataForJson, null, 2));
     }

@@ -314,19 +314,70 @@ router.get('/:id', auth, async (req, res) => {
 // Update project
 router.put('/:id', auth, async (req, res) => {
   try {
-    const project = await Project.findOneAndUpdate(
-      { _id: req.params.id, $or: [{ owner: req.user._id }, { 'members.user': req.user._id, 'members.role': 'admin' }] },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    ).populate('owner members.user', 'displayName email');
+    const { tasks, ...projectFields } = req.body;
+    const project = await Project.findOne({
+      _id: req.params.id,
+      $or: [
+        { owner: req.user._id },
+        { 'members.user': req.user._id, 'members.role': 'admin' }
+      ]
+    });
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found or you do not have permission to edit it.' });
     }
 
-    res.json(project);
+    // Update project fields
+    Object.assign(project, projectFields);
+
+    // If tasks are provided, update them
+    if (Array.isArray(tasks)) {
+      const updatedTaskIds = [];
+      for (const taskData of tasks) {
+        // Support 'user_self' as a shortcut for the current user
+        const assigneeId = (!taskData.assignee || taskData.assignee === 'user_self') ? req.user._id : taskData.assignee;
+        if (taskData._id) {
+          // Update existing task
+          await Task.findByIdAndUpdate(taskData._id, {
+            ...taskData,
+            assignee: assigneeId,
+            dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+          });
+          updatedTaskIds.push(taskData._id);
+        } else {
+          // Create new task
+          const newTask = await Task.create({
+            ...taskData,
+            assignee: assigneeId,
+            project: project._id,
+            creator: req.user._id,
+            dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+          });
+          updatedTaskIds.push(newTask._id);
+        }
+      }
+      // Remove tasks not in updatedTaskIds
+      await Task.deleteMany({ project: project._id, _id: { $nin: updatedTaskIds } });
+      project.tasks = updatedTaskIds;
+    }
+
+    await project.save();
+
+    const populatedProject = await Project.findById(project._id)
+      .populate('owner', 'email displayName')
+      .populate('members.user', 'email displayName')
+      .populate({
+        path: 'tasks',
+        populate: [
+          { path: 'assignee', select: 'email displayName' },
+          { path: 'creator', select: 'email displayName' }
+        ]
+      });
+
+    res.json(populatedProject);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating project', error: error.message });
+    console.error('Error updating project:', error);
+    res.status(400).json({ message: 'Error updating project', error: error.message, stack: error.stack });
   }
 });
 
