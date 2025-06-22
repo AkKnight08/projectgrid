@@ -1,7 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
 const { auth, adminAuth } = require('../middleware/auth');
-const feedbackController = require('../controllers/feedbackController');
 
 const router = express.Router();
 
@@ -139,8 +138,5 @@ router.get('/email/:email', auth, async (req, res) => {
     res.status(500).json({ message: 'Error fetching user' });
   }
 });
-
-router.post('/feedback', feedbackController.submitFeedback);
-router.get('/feedback', feedbackController.getAllFeedback);
 
 module.exports = router; 

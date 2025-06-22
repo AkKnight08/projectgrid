@@ -18,6 +18,7 @@ const projectRoutes = require('./routes/projects');
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const uploadRoutes = require('./routes/upload');
+const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

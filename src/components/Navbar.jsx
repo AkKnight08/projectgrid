@@ -157,6 +157,9 @@ const Navbar = () => {
             </button>
           </div>
         )}
+        <Link to="/feedback" className={`navbar-link text-[${colors.TEXT_PRIMARY}] hover:text-[${colors.ACCENT_PURPLE}]`} style={{ margin: '0 16px', fontWeight: 500 }}>
+          Feedback
+        </Link>
         <div className="search-container" ref={searchRef}>
           <button 
             className={`search-icon-btn text-[${colors.ICON_DEFAULT}] hover:text-[${colors.ICON_HOVER}]`}
