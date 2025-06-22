@@ -20,25 +20,25 @@ const userRoutes = require('./routes/users');
 
 const app = express();
 
+// --- Trust Proxy Configuration ---
+// This is crucial for rate limiting and other features to work correctly behind Vercel's proxy.
+app.set('trust proxy', 1);
+
 // --- CORS Configuration ---
 const allowedOrigins = [
   'http://localhost:5173', // Local dev
-  process.env.FRONTEND_URL, // Production URL from env var
-  'https://planning-project-dwvlflgw3-akshays-projects-cc44e273.vercel.app' // Hardcoded production URL as a fallback
-].filter(Boolean); // Filter out falsy values like undefined
+  /^https:\/\/planning-project.*\.vercel\.app$/, // Vercel deployment URLs (regex for preview and production)
+];
+
+// In case you set a custom domain or primary production URL in Vercel
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(morgan('dev'));
