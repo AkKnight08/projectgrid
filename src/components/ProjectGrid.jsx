@@ -287,6 +287,11 @@ const ProjectGrid = ({
             {filteredProjects.map(project => {
               const layout = layouts.lg?.find(l => l.i === project.id) || { x: 0, y: 0, w: 3, h: 3 };
               const cardRef = useRef(null);
+              const sortedTasks = [...project.tasks].sort((a, b) => {
+                if (a.status === 'completed' && b.status !== 'completed') return 1;
+                if (a.status !== 'completed' && b.status === 'completed') return -1;
+                return 0;
+              });
               return (
                 <div
                   key={project.id}
@@ -318,9 +323,9 @@ const ProjectGrid = ({
                     </div>
                     <div className="task-list-preview mt-2" style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
                       <div className="task-list-scroll" style={{maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1}}>
-                        {project.tasks.length > 0 ? (
+                        {sortedTasks.length > 0 ? (
                           <>
-                            {project.tasks.map((task, idx) => (
+                            {sortedTasks.map((task, idx) => (
                               <div
                                 key={task._id || task.id || idx}
                                 className="flex items-center mb-2 bg-opacity-70 relative"
