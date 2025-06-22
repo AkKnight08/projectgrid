@@ -287,40 +287,17 @@ const ProjectGrid = ({
           >
             {filteredProjects.map(project => {
               const layout = layouts.lg?.find(l => l.i === project.id) || { x: 0, y: 0, w: 3, h: 3 };
-              const [expanded, setExpanded] = useState(false);
-              const [draggedTaskIdx, setDraggedTaskIdx] = useState(null);
-              const [dragOverIdx, setDragOverIdx] = useState(null);
-              const [tasksOrder, setTasksOrder] = useState(project.tasks);
-              useEffect(() => { setTasksOrder(project.tasks); }, [project.tasks]);
-              const visibleTasks = expanded ? tasksOrder : tasksOrder.slice(0, 5);
-              const handleDragStart = idx => setDraggedTaskIdx(idx);
-              const handleDragEnter = idx => setDragOverIdx(idx);
-              const handleDragEnd = () => {
-                if (draggedTaskIdx !== null && dragOverIdx !== null && draggedTaskIdx !== dragOverIdx) {
-                  const newOrder = [...tasksOrder];
-                  const [removed] = newOrder.splice(draggedTaskIdx, 1);
-                  newOrder.splice(dragOverIdx, 0, removed);
-                  setTasksOrder(newOrder);
-                  // Persist new order
-                  if (onUpdateTask) {
-                    newOrder.forEach((task, i) => {
-                      if (task.order !== i) {
-                        onUpdateTask(project.id, task._id || task.id, { order: i });
-                      }
-                    });
-                  }
-                }
-                setDraggedTaskIdx(null);
-                setDragOverIdx(null);
-              };
+              const cardRef = useRef(null);
               return (
                 <div
                   key={project.id}
+                  ref={cardRef}
                   className={`${cardStyle === 'hud' ? 'project-card-hud' : 'project-card'} group`}
                   data-grid={layout}
+                  style={{display: 'flex', flexDirection: 'column', minHeight: 0}}
                 >
                   <div className="drag-handle opacity-0 group-hover:opacity-100"></div>
-                  <div className="card-tilt-inner">
+                  <div className="card-tilt-inner" style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
                     <div className="card-background-pattern"></div>
                     <div className="flex items-center justify-between mb-2">
                       <Link to={`/projects/${project.id}`} className="project-title truncate" style={{maxWidth: '70%'}}>
@@ -340,26 +317,15 @@ const ProjectGrid = ({
                         {project.hasOverdueTasks && <span className="overdue-indicator">Overdue</span>}
                       </div>
                     </div>
-                    <div className="task-list-preview mt-2">
-                      <div className="task-list-scroll">
-                        {tasksOrder && tasksOrder.length > 0 ? (
+                    <div className="task-list-preview mt-2" style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
+                      <div className="task-list-scroll" style={{maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1}}>
+                        {project.tasks.length > 0 ? (
                           <>
-                            {visibleTasks.map((task, idx) => (
+                            {project.tasks.map((task, idx) => (
                               <div
                                 key={task._id || task.id || idx}
-                                className={`flex items-center mb-1 bg-opacity-70 relative ${draggedTaskIdx === idx ? 'bg-blue-900' : dragOverIdx === idx ? 'bg-blue-800' : ''}`}
-                                draggable
-                                onDragStart={() => handleDragStart(idx)}
-                                onDragEnter={() => draggedTaskIdx !== null && handleDragEnter(idx)}
-                                onDragEnd={handleDragEnd}
-                                onDragOver={e => e.preventDefault()}
+                                className="flex items-center mb-2 bg-opacity-70 relative"
                               >
-                                {/* Tooltip for description */}
-                                {task.description && (
-                                  <div className={`task-tooltip${idx <= 1 ? ' task-tooltip-below' : ''}`}>
-                                    {task.description}
-                                  </div>
-                                )}
                                 <label className="custom-checkbox mr-2">
                                   <input
                                     type="checkbox"
@@ -373,7 +339,12 @@ const ProjectGrid = ({
                                   />
                                   <span className={`circle${task.status === 'completed' ? ' checked' : ''}`}></span>
                                 </label>
-                                <span className={task.status === 'completed' ? 'line-through text-gray-500' : ''} style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{task.title}</span>
+                                <div style={{flex: 1, minWidth: 0}}>
+                                  <span className={task.status === 'completed' ? 'line-through text-gray-500' : ''} style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block'}}>{task.title}</span>
+                                  {task.description && (
+                                    <span className="block text-xs text-gray-400" style={{whiteSpace: 'normal', wordBreak: 'break-word'}}>{task.description}</span>
+                                  )}
+                                </div>
                                 {task.dueDate && (
                                   <span className="text-gray-400 text-xs ml-2" style={{minWidth: '56px', textAlign: 'right', display: 'inline-block'}}>
                                     {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -396,11 +367,6 @@ const ProjectGrid = ({
                                 )}
                               </div>
                             ))}
-                            {project.tasks.length > 5 && (
-                              <button className="text-xs text-blue-400 hover:underline ml-2 mt-1" onClick={() => setExpanded(e => !e)}>
-                                {expanded ? 'Show less' : `Show more (${project.tasks.length - 5} more)`}
-                              </button>
-                            )}
                           </>
                         ) : (
                           <div className="text-xs text-gray-500">No tasks</div>
