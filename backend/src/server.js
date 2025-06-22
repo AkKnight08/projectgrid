@@ -30,13 +30,13 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 // Add a logger for avatar requests
-app.use('/uploads', (req, res, next) => {
+app.use('/api/uploads', (req, res, next) => {
   console.log(`[STATIC FILE] Request received for: ${req.originalUrl}`);
   next();
 });
 
 // Serve static files for avatars with the correct headers
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+app.use('/api/uploads', express.static(path.join(__dirname, '../public/uploads'), {
   setHeaders: (res, path, stat) => {
     // Explicitly set CORS headers for avatar images
     res.set('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:5173');
@@ -45,7 +45,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
 }));
 
 // Serve static files from the 'public' directory
-app.use(express.static('public'));
+app.use('/api/images', express.static(path.join(__dirname, '../../public/images')));
 
 // Apply rate limiting
 app.use('/api/auth/check-displayname', displayNameCheckLimiter); // Lenient limiter for this specific route

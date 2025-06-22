@@ -19,14 +19,14 @@ import './Navbar.css';
 import defaultAvatar from '/images/default-avatar.svg';
 
 const getAvatarUrl = (avatarPath) => {
-  if (!avatarPath) {
+  if (!avatarPath || avatarPath === 'default-avatar.svg') {
     return defaultAvatar;
   }
   if (avatarPath.startsWith('blob:')) {
     return avatarPath;
   }
   if (avatarPath.startsWith('/uploads')) {
-    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${avatarPath}`;
+    return `${import.meta.env.VITE_API_URL || ''}/api${avatarPath}`;
   }
   return defaultAvatar;
 };

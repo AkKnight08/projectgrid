@@ -25,14 +25,16 @@ const tabs = [
 ]
 
 // --- Avatar URL Helper ---
-const backendUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
-
 const getAvatarUrl = (avatarPath) => {
-  if (avatarPath && avatarPath.startsWith('/uploads')) {
-    // It's a custom uploaded avatar from the backend
-    return `${backendUrl}${avatarPath}`;
+  if (!avatarPath || avatarPath === 'default-avatar.svg') {
+    return defaultAvatar;
   }
-  // It's the default avatar served from the frontend's public directory
+  if (avatarPath.startsWith('blob:')) {
+    return avatarPath;
+  }
+  if (avatarPath.startsWith('/uploads')) {
+    return `${import.meta.env.VITE_API_URL || ''}/api${avatarPath}`;
+  }
   return defaultAvatar;
 };
 
