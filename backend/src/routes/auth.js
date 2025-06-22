@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { register, login, getMe, verifyEmail, resendVerificationEmail } = require('../controllers/authController');
+const { register, login, getMe, verifyEmail, resendVerificationEmail, changePassword } = require('../controllers/authController');
 const { body } = require('express-validator');
 const { auth } = require('../middleware/auth');
 
@@ -13,7 +13,7 @@ const { auth } = require('../middleware/auth');
 router.post('/register', [
     body('name', 'Name is required').not().isEmpty(),
     body('email', 'Please include a valid email').isEmail(),
-    body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+    body('password', 'Password must be 6 or more characters').isLength({ min: 6 })
 ], register);
 
 // @route   POST api/auth/login
@@ -136,30 +136,7 @@ router.patch('/profile', auth, async (req, res) => {
 });
 
 // Change password
-router.patch('/change-password', auth, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Current password and new password are required' });
-    }
-    
-    // Verify current password
-    const isPasswordValid = await req.user.comparePassword(currentPassword);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
-    }
-    
-    // Update password
-    req.user.password = newPassword;
-    await req.user.save();
-    
-    res.json({ message: 'Password updated successfully' });
-  } catch (error) {
-    console.error('Password change error:', error);
-    res.status(500).json({ message: 'Error changing password' });
-  }
-});
+router.patch('/change-password', auth, changePassword);
 
 // @route   POST /api/auth/check-displayname
 // @desc    Check if a display name is available

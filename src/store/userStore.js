@@ -153,16 +153,16 @@ export const useUserStore = create(
 
       changePassword: async (passwordData) => {
         try {
-          set({ isLoading: true, error: null })
-          await authAPI.changePassword(passwordData)
-          set({ isLoading: false })
-          return true
+          set({ isLoading: true, error: null });
+          await authAPI.changePassword(passwordData);
+          set({ isLoading: false });
+          return true;
         } catch (error) {
           set({
             error: error.response?.data?.message || 'Failed to change password',
             isLoading: false,
-          })
-          return false
+          });
+          return false;
         }
       },
 

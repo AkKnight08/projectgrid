@@ -2,7 +2,12 @@ const mongoose = require('mongoose');
 const User = require('./src/models/User');
 require('dotenv').config();
 
-const userEmailToDelete = '2021uec1560@mnit.ac.in';
+const userEmailToDelete = process.argv[2];
+
+if (!userEmailToDelete) {
+    console.log('Please provide an email address to delete.');
+    process.exit(1);
+}
 
 async function deleteUser() {
     try {

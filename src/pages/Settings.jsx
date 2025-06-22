@@ -10,6 +10,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors'
 import { useTheme } from '../context/ThemeContext'
+import { useUserStore } from '../store/userStore'
+// import { useToast } from '../hooks/useToast'
 
 const tabs = [
   { id: 'general', name: 'General', icon: Cog6ToothIcon },
@@ -22,8 +24,67 @@ const tabs = [
 ]
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState('general')
+  const { user, updateUser, changePassword } = useUserStore()
   const { theme, handleThemeChange } = useTheme()
+  const [activeTab, setActiveTab] = useState('general')
+  const [formData, setFormData] = useState({
+    displayName: user?.displayName || '',
+    email: user?.email || '',
+    bio: user?.bio || '',
+    avatar: user?.avatar || '',
+  })
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+
+  // const { addToast } = useToast()
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handlePasswordInputChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value })
+  }
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await updateUser(formData)
+      // addToast('Profile updated successfully', { appearance: 'success' })
+    } catch (error) {
+      // addToast('Failed to update profile', { appearance: 'error' })
+    }
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match.')
+      return
+    }
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters long.')
+      return
+    }
+    try {
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      })
+      setPasswordSuccess('Password changed successfully.')
+      setPasswordError('')
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error) {
+      setPasswordError(error.message || 'Failed to change password.')
+      setPasswordSuccess('')
+    }
+  }
 
   // Get colors based on current theme
   const colors = theme === 'dark' ? DARK_MODE_COLORS : {
@@ -41,6 +102,10 @@ const Settings = () => {
     ACCENT_GREEN: '#059669',
     ICON_DEFAULT: '#666666',
     ICON_HOVER: '#1A1A1A'
+  }
+
+  const onFileChange = (e) => {
+    // ... existing code ...
   }
 
   return (
@@ -162,7 +227,7 @@ const Settings = () => {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>
+                  <button onClick={handleFormSubmit} className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>
                     Save Changes
                   </button>
                 </div>
@@ -252,7 +317,7 @@ const Settings = () => {
                 {/* Password Change */}
                 <section>
                   <h2 className="text-lg font-semibold text-[#E0E0E0] mb-4">Change Password</h2>
-                  <div className="space-y-4">
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
                       <label htmlFor="currentPassword" className="block text-sm font-medium text-[#A0A0A0] mb-1">
                         Current Password
@@ -260,6 +325,9 @@ const Settings = () => {
                       <input
                         type="password"
                         id="currentPassword"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordInputChange}
                         placeholder="••••••••"
                         className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
                           focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
@@ -273,11 +341,14 @@ const Settings = () => {
                         <input
                           type="password"
                           id="newPassword"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordInputChange}
                           placeholder="••••••••"
                           className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
                             focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                         />
-                        <button className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#E0E0E0]">
+                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#E0E0E0]">
                           👁️
                         </button>
                       </div>
@@ -296,17 +367,27 @@ const Settings = () => {
                       <input
                         type="password"
                         id="confirmPassword"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordInputChange}
                         placeholder="••••••••"
                         className="w-full bg-[#242424] border border-[#2E2E2E] rounded-md text-[#E0E0E0] px-4 py-2 text-sm
                           focus:border-[#BB86FC] focus:ring-2 focus:ring-[#BB86FC]/30 focus:outline-none"
                       />
                     </div>
-                  </div>
+                    {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
+                    {passwordSuccess && <p className="text-sm text-green-500">{passwordSuccess}</p>}
+                    <div className="flex justify-end">
+                      <button type="submit" className="px-6 py-3 bg-[#BB86FC] text-[#121212] font-semibold rounded-md hover:bg-[#BB86FC]/90 transition-colors">
+                        Change Password
+                      </button>
+                    </div>
+                  </form>
                 </section>
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <button className="px-6 py-3 bg-[#BB86FC] text-[#121212] font-semibold rounded-md hover:bg-[#BB86FC]/90 transition-colors">
+                  <button onClick={handleFormSubmit} className="px-6 py-3 bg-[#BB86FC] text-[#121212] font-semibold rounded-md hover:bg-[#BB86FC]/90 transition-colors">
                     Save Changes
                   </button>
                 </div>

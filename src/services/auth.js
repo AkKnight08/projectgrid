@@ -129,35 +129,13 @@ const authAPI = {
   },
 
   async updateUserInfo(userData) {
-    try {
-      console.log('=== AUTH SERVICE: UPDATE USER INFO ===');
-      console.log('Sending user data:', userData);
-      
-      const response = await api.patch('/auth/profile', userData);
-      
-      console.log('Response received:', response.data);
-      
-      // Update the cached user data
-      localStorage.setItem(USER_KEY, JSON.stringify(response.data));
-      
-      console.log('Updated cached user data');
-      
-      return response.data;
-    } catch (error) {
-      console.error('=== AUTH SERVICE: UPDATE USER INFO ERROR ===');
-      console.error('Error:', error);
-      console.error('Error response:', error.response?.data);
-      throw error;
-    }
+    const response = await api.patch('/auth/me', userData);
+    return response.data;
   },
 
   async changePassword(passwordData) {
-    try {
-      const response = await api.patch('/auth/change-password', passwordData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.patch('/password/change', passwordData);
+    return response.data;
   },
 
   async updateAvatar(formData) {
