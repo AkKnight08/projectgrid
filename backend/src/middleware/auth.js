@@ -29,14 +29,8 @@ const auth = async (req, res, next) => {
 
     console.log('User found:', { id: user._id, email: user.email });
     
-    // Set both id and _id for compatibility
-    req.user = {
-      id: user._id.toString(),
-      _id: user._id,
-      email: user.email,
-      displayName: user.displayName,
-      role: user.role
-    };
+    // Attach the full Mongoose user document to the request
+    req.user = user;
 
     next();
   } catch (error) {

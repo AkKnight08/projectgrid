@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle -->
-  <circle cx="100" cy="100" r="100" fill="#E5E7EB"/>
-  
-  <!-- User silhouette -->
-  <circle cx="100" cy="85" r="35" fill="#9CA3AF"/>
-  <path d="M100 130C133.137 130 160 156.863 160 190V200H40V190C40 156.863 66.8629 130 100 130Z" fill="#9CA3AF"/>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="64" fill="url(#paint0_linear_alt_cool)"/>
+  <path d="M64 84C77.2548 84 88 73.2548 88 60C88 46.7452 77.2548 36 64 36C50.7452 36 40 46.7452 40 60C40 73.2548 50.7452 84 64 84Z" fill="white" fill-opacity="0.25"/>
+  <path d="M96 116C96 100.536 83.464 88 68 88H60C44.536 88 32 100.536 32 116V124H96V116Z" fill="white" fill-opacity="0.25"/>
+  <defs>
+    <linearGradient id="paint0_linear_alt_cool" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0E7490"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
 </svg> 

@@ -1,708 +1,551 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useUserStore } from '../store/userStore'
 import {
   UserCircleIcon,
-  BellIcon,
   ShieldCheckIcon,
-  ClockIcon,
-  KeyIcon,
+  BellIcon,
   TrashIcon,
-  PencilIcon,
-  XMarkIcon,
-  CheckIcon,
+  CameraIcon,
   ExclamationTriangleIcon,
-  GlobeAltIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  LanguageIcon,
-  LinkIcon,
-  ArrowPathIcon
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
-import { format, parseISO } from 'date-fns'
+import { DARK_MODE_COLORS } from '../constants/colors'
+import { debounce } from 'lodash'
+import authAPI from '../services/auth'
+import React from 'react'
+import defaultAvatar from '/images/default-avatar.svg'
 
-const themeOptions = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+const tabs = [
+  { id: 'profile', name: 'Edit Profile', icon: UserCircleIcon },
+  { id: 'security', name: 'Password & Security', icon: ShieldCheckIcon },
+  { id: 'notifications', name: 'Notifications', icon: BellIcon },
+  { id: 'account', name: 'Account Actions', icon: TrashIcon },
 ]
 
-const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'zh', label: 'Chinese' },
-]
+// --- Avatar URL Helper ---
+const backendUrl = (import.meta.env.VITE_API_URL || '').replace('/api', '');
 
-const itemsPerPageOptions = [
-  { value: 10, label: '10 items' },
-  { value: 25, label: '25 items' },
-  { value: 50, label: '50 items' },
-  { value: 100, label: '100 items' },
-]
+const getAvatarUrl = (avatarPath) => {
+  if (avatarPath && avatarPath.startsWith('/uploads')) {
+    // It's a custom uploaded avatar from the backend
+    return `${backendUrl}${avatarPath}`;
+  }
+  // It's the default avatar served from the frontend's public directory
+  return defaultAvatar;
+};
 
 const Profile = () => {
-  const { 
-    user, 
-    updateUserInfo, 
-    changePassword, 
-    enable2FA, 
-    disable2FA, 
-    updateNotificationPrefs, 
-    deleteAccount,
-    updateSettings,
-    isLoading,
-    error 
-  } = useUserStore()
+  const { user, updateUserInfo, changePassword, deleteAccount, updateAvatar } = useUserStore()
   
-  // State management
-  const [editMode, setEditMode] = useState(false)
-  const [formValues, setFormValues] = useState({
-    fullName: '',
-    displayName: '',
-    username: '',
-    phone: '',
-    timezone: '',
-    language: 'en'
-  })
-  const [validationErrors, setValidationErrors] = useState({})
-  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [activeTab, setActiveTab] = useState('profile')
+  const [formData, setFormData] = useState({ fullName: '', displayName: '' })
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    email: {
-      newTask: true,
-      deadlineApproaching: true,
-      projectStatus: true,
-      weeklySummary: true
-    },
-    inApp: {
-      comments: true,
-      taskUpdates: true
-    },
-    sms: {
-      overdueAlert: false,
-      twoFactor: false
-    }
-  })
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisible: true,
-    allowInvites: true
-  })
-  const [settings, setSettings] = useState({
-    theme: user?.settings?.theme || localStorage.getItem('theme') || 'system',
-    language: user?.settings?.language || 'en',
-    notifications: user?.settings?.notifications ?? true,
-    itemsPerPage: user?.settings?.itemsPerPage || 10,
-    emailNotifications: user?.settings?.emailNotifications ?? true,
-    soundEnabled: user?.settings?.soundEnabled ?? true,
-    autoSave: user?.settings?.autoSave ?? true,
-  })
-  const [showPasswordStrength, setShowPasswordStrength] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  // Add default avatar URL
-  const defaultAvatarUrl = '/images/default-avatar.svg'
+  // Use the same color scheme as Settings
+  const colors = DARK_MODE_COLORS
 
-  // Initialize form values when user data is loaded
   useEffect(() => {
     if (user) {
-      setFormValues({
-        fullName: user.fullName || '',
-        displayName: user.displayName || '',
-        username: user.username || '',
-        phone: user.phone || '',
-        timezone: user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: user.language || 'en'
-      })
-      setSettings({
-        theme: user.settings?.theme || localStorage.getItem('theme') || 'system',
-        language: user.settings?.language || 'en',
-        notifications: user.settings?.notifications ?? true,
-        itemsPerPage: user.settings?.itemsPerPage || 10,
-        emailNotifications: user.settings?.emailNotifications ?? true,
-        soundEnabled: user.settings?.soundEnabled ?? true,
-        autoSave: user.settings?.autoSave ?? true,
+      // Helper to generate display name from name
+      const generateDisplayName = (fullName) => {
+        if (!fullName) return '';
+        const nameParts = fullName.trim().split(/\s+/);
+        if (nameParts.length === 1) {
+          return nameParts[0];
+        } else if (nameParts.length === 2) {
+          return `${nameParts[0][0]}${nameParts[1]}`;
+        } else {
+          return `${nameParts[0][0]}${nameParts[nameParts.length - 1]}`;
+        }
+      };
+      
+      // Debug logging
+      console.log('User object from store:', user);
+      console.log('User.displayName from database:', user.displayName);
+      console.log('User.name from database:', user.name);
+      console.log('Generated displayName:', generateDisplayName(user.name || ''));
+      
+      setFormData({
+        fullName: user.name || '',
+        displayName: user.displayName || generateDisplayName(user.name || ''),
       })
     }
   }, [user])
 
-  // Apply theme on mount and when changed
-  useEffect(() => {
-    const applyTheme = (theme) => {
-      if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    }
-    applyTheme(settings.theme)
-    localStorage.setItem('theme', settings.theme)
-    
-    // Listen for system theme changes if 'system' is selected
-    let mediaQuery
-    if (settings.theme === 'system') {
-      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handler = () => applyTheme('system')
-      mediaQuery.addEventListener('change', handler)
-      return () => mediaQuery.removeEventListener('change', handler)
-    }
-  }, [settings.theme])
-
-  // Handle settings changes
-  const handleSettingsChange = async (e) => {
-    const { name, value, type, checked } = e.target
-    const newValue = type === 'checkbox' ? checked : value
-    
-    setSettings(prev => ({
-      ...prev,
-      [name]: newValue
-    }))
-
-    // Auto-save when a setting changes
-    const settingsToSave = {
-      [`settings.${name}`]: type === 'checkbox' ? checked : (name === 'itemsPerPage' ? parseInt(newValue, 10) : newValue)
-    }
-    
-    try {
-      const success = await updateSettings(settingsToSave)
-      if (success) {
-        setSuccessMessage('Settings updated!')
-        setTimeout(() => setSuccessMessage(''), 2000)
-      }
-    } catch (error) {
-      console.error('Failed to update settings:', error)
-    }
+  const handleFormChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormValues(prev => ({
-      ...prev,
-      [name]: value
-    }))
-    // Clear validation error when user starts typing
-    if (validationErrors[name]) {
-      setValidationErrors(prev => ({
-        ...prev,
-        [name]: null
-      }))
-    }
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value })
   }
 
-  // Handle avatar upload
-  const handleAvatarUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        alert('Image must be under 2MB')
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  // Validate form
-  const validateForm = () => {
-    const errors = {}
-    if (!formValues.fullName.trim()) {
-      errors.fullName = 'Full name is required'
-    }
-    if (!formValues.displayName.trim()) {
-      errors.displayName = 'Display name is required'
-    } else if (formValues.displayName.length > 50) {
-      errors.displayName = 'Display name must be 50 characters or less'
-    }
-    if (formValues.phone && !/^\+?[\d\s-]{10,}$/.test(formValues.phone)) {
-      errors.phone = 'Invalid phone number format'
-    }
-    setValidationErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault()
-    if (!validateForm()) return
-
+    setSuccessMessage('')
+    setErrorMessage('')
+    
+    console.log('=== PROFILE SUBMIT ===');
+    console.log('Form data being sent:', formData);
+    
     try {
-      await updateUserInfo(formValues)
-      setEditMode(false)
+      await updateUserInfo(formData)
       setSuccessMessage('Profile updated successfully!')
-      setTimeout(() => setSuccessMessage(''), 2000)
+      console.log('Profile update successful');
     } catch (error) {
-      console.error('Failed to update profile:', error)
+      console.error('Profile update failed:', error);
+      console.error('Error response:', error.response?.data);
+      setErrorMessage(error.response?.data?.message || 'Failed to update profile.')
     }
   }
 
-  // Handle password change
-  const handlePasswordChange = async (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setValidationErrors({ ...validationErrors, confirmPassword: 'Passwords do not match' })
+    setSuccessMessage('')
+    setErrorMessage('')
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setErrorMessage("New passwords don't match.")
       return
     }
-
     try {
-      await changePassword(passwordForm.currentPassword, passwordForm.newPassword)
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      setSuccessMessage('Password updated successfully!')
-      setTimeout(() => setSuccessMessage(''), 2000)
+      await changePassword(passwordData)
+      setSuccessMessage('Password changed successfully!')
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (error) {
-      console.error('Failed to change password:', error)
+      setErrorMessage(error.response?.data?.message || 'Failed to change password.')
     }
   }
 
-  // Handle account deletion
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETE') return
+    if (deleteConfirmation !== user.email) {
+      setErrorMessage('Email confirmation does not match.')
+      return
+    }
     try {
       await deleteAccount()
-      // Redirect to landing page
+      // The user will be logged out automatically by the store
     } catch (error) {
-      console.error('Failed to delete account:', error)
+      setErrorMessage(error.response?.data?.message || 'Failed to delete account.')
+      setShowDeleteModal(false)
     }
   }
 
-  // Render user info section
-  const renderUserInfo = () => (
-    <div className="bg-white shadow sm:rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column - Avatar & Basic Info */}
-          <div className="space-y-6">
-            <div className="flex flex-col items-center">
-              <div className="relative">
-                <img
-                  src={avatarPreview || user?.avatarURL || defaultAvatarUrl}
-                  alt="Profile"
-                  className="h-32 w-32 rounded-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null
-                    e.target.src = defaultAvatarUrl
-                  }}
-                />
-                {editMode && (
-                  <div className="absolute bottom-0 right-0">
-                    <label className="cursor-pointer bg-primary-600 text-white p-2 rounded-full hover:bg-primary-700">
-                      <PencilIcon className="h-5 w-5" />
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/png,image/jpeg"
-                        onChange={handleAvatarUpload}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-              {editMode && avatarPreview && (
-                <button
-                  onClick={() => setAvatarPreview(null)}
-                  className="mt-2 text-sm text-red-600 hover:text-red-700"
-                >
-                  Remove Photo
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Display Name</label>
-                {editMode ? (
-                  <input
-                    type="text"
-                    name="displayName"
-                    value={formValues.displayName}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  />
-                ) : (
-                  <p className="mt-1 text-lg font-semibold text-gray-900">{user?.displayName}</p>
-                )}
-                {validationErrors.displayName && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.displayName}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Username</label>
-                {editMode ? (
-                  <input
-                    type="text"
-                    name="username"
-                    value={formValues.username}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  />
-                ) : (
-                  <p className="mt-1 text-lg text-gray-900">@{user?.username}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Additional Details */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
-              {editMode ? (
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formValues.fullName}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                />
-              ) : (
-                <p className="mt-1 text-lg text-gray-900">{user?.fullName}</p>
-              )}
-              {validationErrors.fullName && (
-                <p className="mt-1 text-sm text-red-600">{validationErrors.fullName}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <p className="mt-1 text-lg text-gray-900">{user?.email}</p>
-              {user?.emailVerified && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <CheckIcon className="h-3 w-3 mr-1" />
-                  Verified
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-              {editMode ? (
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formValues.phone}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                />
-              ) : (
-                <p className="mt-1 text-lg text-gray-900">{user?.phone || 'Not set'}</p>
-              )}
-              {validationErrors.phone && (
-                <p className="mt-1 text-sm text-red-600">{validationErrors.phone}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Date Joined</label>
-              <p className="mt-1 text-lg text-gray-900">
-                {user?.dateJoined ? format(parseISO(user.dateJoined), 'MMMM d, yyyy') : 'N/A'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  // Render security section
-  const renderSecurity = () => (
-    <div className="bg-white shadow sm:rounded-lg mt-6">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Security & Preferences</h3>
-        
-        {/* Password Change */}
-        <div className="space-y-4">
-          <h4 className="text-md font-medium text-gray-900">Change Password</h4>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Current Password</label>
-              <input
-                type="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">New Password</label>
-              <input
-                type="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
-              <input
-                type="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Two-Factor Authentication */}
-        <div className="mt-6">
-          <h4 className="text-md font-medium text-gray-900">Two-Factor Authentication</h4>
-          <div className="mt-2">
-            <label className="inline-flex items-center">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              />
-              <span className="ml-2">Enable 2FA</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Account Deletion */}
-        <div className="mt-6">
-          <h4 className="text-md font-medium text-gray-900">Delete Account</h4>
-          <p className="mt-1 text-sm text-gray-500">
-            Once you delete your account, there is no going back. Please be certain.
-          </p>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
-            <TrashIcon className="h-5 w-5 mr-2" />
-            Delete Account
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
-  // Render activity section
-  const renderActivity = () => (
-    <div className="bg-white shadow sm:rounded-lg mt-6">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Recent Activity</h3>
-        <div className="space-y-4">
-          {/* Activity items would be mapped here */}
-          <p className="text-gray-500">No recent activity</p>
-        </div>
-      </div>
-    </div>
-  )
-
-  // Render settings section
-  const renderSettings = () => (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">Display Preferences</h2>
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Theme</label>
-          <select
-            name="theme"
-            value={settings.theme}
-            onChange={handleSettingsChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-          >
-            {themeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
-          <select
-            name="language"
-            value={settings.language}
-            onChange={handleSettingsChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-          >
-            {languageOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Items Per Page</label>
-          <select
-            name="itemsPerPage"
-            value={settings.itemsPerPage}
-            onChange={handleSettingsChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-          >
-            {itemsPerPageOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <input
-              id="notifications"
-              name="notifications"
-              type="checkbox"
-              checked={settings.notifications}
-              onChange={handleSettingsChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-            <label htmlFor="notifications" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Enable in-app notifications
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="emailNotifications"
-              name="emailNotifications"
-              type="checkbox"
-              checked={settings.emailNotifications}
-              onChange={handleSettingsChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-            <label htmlFor="emailNotifications" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Enable email notifications
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="soundEnabled"
-              name="soundEnabled"
-              type="checkbox"
-              checked={settings.soundEnabled}
-              onChange={handleSettingsChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-            <label htmlFor="soundEnabled" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Enable sound effects
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="autoSave"
-              name="autoSave"
-              type="checkbox"
-              checked={settings.autoSave}
-              onChange={handleSettingsChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-            <label htmlFor="autoSave" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Enable auto-save
-            </label>
-          </div>
-        </div>
-
-        {error && (
-          <div className="text-red-500 text-sm">
-            {typeof error === 'string' ? error : (error.message || 'Server error. Please check your input.')}
-          </div>
-        )}
-        {successMessage && (
-          <div className="text-green-600 text-sm">{successMessage}</div>
-        )}
-      </div>
-    </div>
-  )
-
-  // Delete Account Confirmation Modal
-  const renderDeleteConfirmModal = () => (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Delete Account</h3>
-          <button
-            onClick={() => setShowDeleteModal(false)}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">
-          This action cannot be undone. This will permanently delete your account and remove all data from our servers.
-        </p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Type DELETE to confirm
-          </label>
-          <input
-            type="text"
-            value={deleteConfirmation}
-            onChange={(e) => setDeleteConfirmation(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-          />
-        </div>
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => setShowDeleteModal(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleDeleteAccount}
-            disabled={deleteConfirmation !== 'DELETE'}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50"
-          >
-            Delete Account
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return <EditProfileForm {...{ formData, setFormData, handleFormChange, handleProfileSubmit, userEmail: user?.email, colors }} />
+      case 'security':
+        return <SecuritySettings {...{ passwordData, handlePasswordChange, handlePasswordSubmit, colors }} />
+      case 'notifications':
+        return <NotificationSettings colors={colors} />
+      case 'account':
+        return <AccountActions {...{ setShowDeleteModal, colors }} />
+      default:
+        return null
+    }
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Manage your account information, preferences, and security
-          </p>
-        </div>
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    <div className="h-screen bg-[#1E1E1E] p-6 pt-16 pb-12 overflow-hidden">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className={`text-[1.5rem] font-semibold text-[${colors.TEXT_PRIMARY}] italic`}>Account Settings</h1>
+        <button 
+          onClick={() => {
+            // Clear cached user data and force refresh
+            localStorage.removeItem('taskgrid_user');
+            window.location.reload();
+          }}
+          className={`px-4 py-2 bg-[${colors.ACCENT_TEAL}] text-[${colors.PAGE_BG}] text-sm font-medium rounded-md hover:bg-[${colors.ACCENT_TEAL}]/90 transition-colors`}
         >
-          {editMode ? (
-            <>
-              <XMarkIcon className="h-5 w-5 mr-2" />
-              Cancel
-            </>
-          ) : (
-            <>
-              <PencilIcon className="h-5 w-5 mr-2" />
-              Edit Profile
-            </>
-          )}
+          Refresh Data
         </button>
       </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column - User Info & Avatar */}
-        <div className="space-y-6">
-          {renderUserInfo()}
-          {renderSecurity()}
-        </div>
-
-        {/* Right Column - Settings & Activity */}
-        <div className="space-y-6">
-          {renderSettings()}
-          {renderActivity()}
-        </div>
+      {successMessage && <div className={`bg-[${colors.ACCENT_GREEN}]/20 border border-[${colors.ACCENT_GREEN}] text-[${colors.ACCENT_GREEN}] px-4 py-3 rounded relative mb-4`} role="alert">{successMessage}</div>}
+      {errorMessage && <div className={`bg-[${colors.ACCENT_RED}]/20 border border-[${colors.ACCENT_RED}] text-[${colors.ACCENT_RED}] px-4 py-3 rounded relative mb-4`} role="alert">{errorMessage}</div>}
+      <div className="flex gap-8 mt-4 h-[calc(100%-8rem)]">
+        <aside className="w-1/4">
+          <nav className={`flex flex-col gap-2 bg-[${colors.CARD_INNER_BG}] rounded-lg p-4`}>
+            {tabs.map(tab => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-3 px-4 py-3 text-[0.875rem] font-medium rounded-md transition-colors ${
+                    isActive
+                      ? `bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] border-l-4 border-[${colors.ACCENT_PURPLE}] -ml-1 shadow-sm`
+                      : `text-[${colors.TEXT_SECONDARY}] hover:bg-[${colors.CARD_INNER_BG}] hover:text-[${colors.TEXT_PRIMARY}]`
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 ${isActive ? `text-[${colors.ACCENT_PURPLE}]` : `text-[${colors.ICON_DEFAULT}]`}`} />
+                  {tab.name}
+                </button>
+              )
+            })}
+          </nav>
+        </aside>
+        <main className={`flex-1 bg-[${colors.PANEL_BG}] rounded-lg shadow p-8 overflow-y-auto`}>
+          {renderTabContent()}
+        </main>
       </div>
-
-      {/* Delete Account Modal */}
-      {showDeleteModal && renderDeleteConfirmModal()}
+      {showDeleteModal && <DeleteAccountModal {...{ setShowDeleteModal, handleDeleteAccount, setDeleteConfirmation, deleteConfirmation, userEmail: user.email, colors }} />}
     </div>
   )
 }
+
+const EditProfileForm = ({ formData, setFormData, handleFormChange, handleProfileSubmit, userEmail, colors }) => {
+  const { user, updateAvatar } = useUserStore();
+  const fileInputRef = React.useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(getAvatarUrl(user?.avatar));
+  const [avatarError, setAvatarError] = useState(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    setAvatarError(null); // Clear previous errors
+    const file = e.target.files[0];
+    if (file) {
+      // Client-side validation for file size
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        setAvatarError('File is too large. Please select an image under 5MB.');
+        return;
+      }
+
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarPreview(previewUrl);
+      
+      const { success, error } = await updateAvatar(file);
+      if (!success) {
+        setAvatarPreview(getAvatarUrl(user?.avatar));
+        setAvatarError(error || 'Avatar upload failed.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    setAvatarPreview(getAvatarUrl(user?.avatar));
+  }, [user?.avatar]);
+
+  const [displayNameStatus, setDisplayNameStatus] = useState({
+    loading: false,
+    available: true,
+    message: '',
+  });
+
+  const checkDisplayNameAvailability = useCallback(
+    debounce(async (name) => {
+      if (!name || name.length < 3) {
+        setDisplayNameStatus({ loading: false, available: true, message: '' });
+        return;
+      }
+      setDisplayNameStatus({ loading: true, available: false, message: 'Checking...' });
+      const { isAvailable, message } = await authAPI.checkDisplayName(name);
+      setDisplayNameStatus({ loading: false, available: isAvailable, message });
+    }, 500),
+    []
+  );
+
+  const onDisplayNameChange = (e) => {
+    const { value } = e.target;
+    handleFormChange(e);
+    checkDisplayNameAvailability(value);
+  };
+
+  // Function to generate display name from full name
+  const generateDisplayName = (fullName) => {
+    if (!fullName) return '';
+    
+    // Remove extra spaces and split by space
+    const nameParts = fullName.trim().split(/\s+/);
+    
+    if (nameParts.length === 1) {
+      // Single name - use as is
+      return nameParts[0];
+    } else if (nameParts.length === 2) {
+      // First and last name - use first letter of first name + last name
+      return `${nameParts[0][0]}${nameParts[1]}`;
+    } else {
+      // Multiple names - use first letter of first name + last name
+      return `${nameParts[0][0]}${nameParts[nameParts.length - 1]}`;
+    }
+  };
+
+  // Enhanced form change handler
+  const handleFormChangeEnhanced = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'fullName') {
+      // Auto-generate display name when full name changes
+      const newDisplayName = generateDisplayName(value);
+      setFormData(prev => ({
+        ...prev,
+        fullName: value,
+        displayName: prev.displayName || newDisplayName // Only update if displayName is empty
+      }));
+    } else {
+      handleFormChange(e);
+    }
+  };
+
+  return (
+    <form onSubmit={handleProfileSubmit} className="space-y-6">
+      <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}]`}>Public Profile</h2>
+      
+      {/* Avatar Section */}
+      <div className="flex items-center gap-4">
+        <img 
+          src={avatarPreview} 
+          alt="Avatar" 
+          className="h-20 w-20 rounded-full object-cover"
+          onError={(e) => {
+            if (e.target.src !== defaultAvatar) {
+              e.target.onerror = null; // Prevent infinite loop if default avatar also fails
+              e.target.src = defaultAvatar;
+            }
+          }}
+        />
+        <div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/png, image/jpeg, image/gif"
+          />
+          <button 
+            type="button" 
+            onClick={handleAvatarClick}
+            className={`flex items-center gap-2 px-4 py-2 bg-[${colors.CARD_INNER_BG}] rounded-md text-sm text-[${colors.TEXT_PRIMARY}] hover:bg-[${colors.BORDER}] transition-colors`}>
+            <CameraIcon className="h-5 w-5" /> Change Avatar
+          </button>
+          {avatarError && (
+            <p className="text-xs text-red-400 mt-2">{avatarError}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Full Name Field */}
+      <div>
+        <label htmlFor="fullName" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
+          Full Name <span className="text-[#CF6679]">*</span>
+        </label>
+        <input 
+          type="text" 
+          name="fullName" 
+          id="fullName" 
+          value={formData.fullName} 
+          onChange={handleFormChangeEnhanced} 
+          className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+            focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+            placeholder:text-[${colors.TEXT_DISABLED}]`}
+          placeholder="Enter your full name"
+          required
+        />
+        <p className={`text-xs text-[${colors.TEXT_SECONDARY}] mt-1`}>
+          This is your legal name and will be used for account verification.
+        </p>
+      </div>
+
+      {/* Display Name Field - More Prominent */}
+      <div className={`p-4 bg-[${colors.CARD_INNER_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`w-2 h-2 bg-[${colors.ACCENT_PURPLE}] rounded-full`}></div>
+          <label htmlFor="displayName" className={`block text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>
+            Display Name
+          </label>
+        </div>
+        <input 
+          type="text" 
+          name="displayName" 
+          id="displayName" 
+          value={formData.displayName} 
+          onChange={onDisplayNameChange} 
+          className={`w-full bg-[${colors.PANEL_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+            focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+            placeholder:text-[${colors.TEXT_DISABLED}]`}
+          placeholder="Enter your display name"
+        />
+        <div className="mt-2 space-y-2">
+          {displayNameStatus.loading && (
+            <div className="flex items-center text-xs text-yellow-400">
+              <ClockIcon className="h-4 w-4 mr-1" />
+              {displayNameStatus.message}
+            </div>
+          )}
+          {!displayNameStatus.loading && displayNameStatus.message && (
+            <div className={`flex items-center text-xs ${displayNameStatus.available ? 'text-green-400' : 'text-red-400'}`}>
+              {displayNameStatus.available ? <CheckCircleIcon className="h-4 w-4 mr-1" /> : <XCircleIcon className="h-4 w-4 mr-1" />}
+              {displayNameStatus.message}
+            </div>
+          )}
+          <p className={`text-xs text-[${colors.TEXT_SECONDARY}]`}>
+            This is your public username that others will see in projects and collaborations.
+          </p>
+          <div className={`text-xs text-[${colors.ACCENT_PURPLE}] bg-[${colors.ACCENT_PURPLE}]/10 p-2 rounded`}>
+            <strong>💡 Tip:</strong> Your display name will appear as "@{formData.displayName || 'yourname'}" in project activities.
+          </div>
+        </div>
+      </div>
+
+      {/* Email Field */}
+      <div>
+        <label htmlFor="email" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>Email</label>
+        <input 
+          type="email" 
+          name="email" 
+          id="email" 
+          value={userEmail} 
+          disabled 
+          className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_DISABLED}] px-4 py-2 text-sm cursor-not-allowed`} 
+        />
+        <p className={`text-xs text-[${colors.TEXT_SECONDARY}] mt-1`}>
+          Email address cannot be changed. Contact support if needed.
+        </p>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <button 
+          type="submit" 
+          disabled={!displayNameStatus.available || displayNameStatus.loading}
+          className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+};
+
+const SecuritySettings = ({ passwordData, handlePasswordChange, handlePasswordSubmit, colors }) => (
+  <form onSubmit={handlePasswordSubmit} className="space-y-6">
+    <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}]`}>Password</h2>
+    <div>
+      <label htmlFor="currentPassword" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>Current Password</label>
+      <input 
+        type="password" 
+        name="currentPassword" 
+        id="currentPassword" 
+        value={passwordData.currentPassword} 
+        onChange={handlePasswordChange} 
+        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+          placeholder:text-[${colors.TEXT_DISABLED}]`}
+        placeholder="Enter current password"
+        required 
+      />
+    </div>
+    <div>
+      <label htmlFor="newPassword" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>New Password</label>
+      <input 
+        type="password" 
+        name="newPassword" 
+        id="newPassword" 
+        value={passwordData.newPassword} 
+        onChange={handlePasswordChange} 
+        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+          placeholder:text-[${colors.TEXT_DISABLED}]`}
+        placeholder="Enter new password"
+        required 
+      />
+    </div>
+    <div>
+      <label htmlFor="confirmPassword" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>Confirm New Password</label>
+      <input 
+        type="password" 
+        name="confirmPassword" 
+        id="confirmPassword" 
+        value={passwordData.confirmPassword} 
+        onChange={handlePasswordChange} 
+        className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+          focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+          placeholder:text-[${colors.TEXT_DISABLED}]`}
+        placeholder="Confirm new password"
+        required 
+      />
+    </div>
+    <div className="flex justify-end">
+      <button type="submit" className={`px-6 py-3 bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}] font-semibold rounded-md hover:bg-[${colors.ACCENT_PURPLE}]/90 transition-colors`}>Update Password</button>
+    </div>
+  </form>
+)
+
+const NotificationSettings = ({ colors }) => (
+  <div>
+    <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Notifications</h2>
+    <p className={`text-[${colors.TEXT_SECONDARY}]`}>Notification settings will be available in a future update.</p>
+  </div>
+)
+
+const AccountActions = ({ setShowDeleteModal, colors }) => (
+  <div className="space-y-6">
+    <h2 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}]`}>Account Actions</h2>
+    <div className={`p-4 bg-[${colors.CARD_INNER_BG}] rounded-lg border border-[${colors.BORDER}]`}>
+      <div className="flex items-center gap-3 mb-3">
+        <ExclamationTriangleIcon className={`h-6 w-6 text-[${colors.ACCENT_ORANGE}]`} />
+        <h3 className={`text-sm font-medium text-[${colors.TEXT_PRIMARY}]`}>Delete Account</h3>
+      </div>
+      <p className={`text-sm text-[${colors.TEXT_SECONDARY}] mb-4`}>
+        Once you delete your account, there is no going back. Please be certain.
+      </p>
+      <button
+        onClick={() => setShowDeleteModal(true)}
+        className={`px-4 py-2 bg-[${colors.ACCENT_RED}] text-[${colors.PAGE_BG}] text-sm font-medium rounded-md hover:bg-[${colors.ACCENT_RED}]/90 transition-colors`}
+      >
+        Delete Account
+      </button>
+    </div>
+  </div>
+)
+
+const DeleteAccountModal = ({ setShowDeleteModal, handleDeleteAccount, setDeleteConfirmation, deleteConfirmation, userEmail, colors }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className={`bg-[${colors.PANEL_BG}] rounded-lg p-6 max-w-md w-full mx-4`}>
+      <h3 className={`text-lg font-semibold text-[${colors.TEXT_PRIMARY}] mb-4`}>Delete Account</h3>
+      <p className={`text-sm text-[${colors.TEXT_SECONDARY}] mb-4`}>
+        This action cannot be undone. This will permanently delete your account and remove all your data.
+      </p>
+      <div className="mb-4">
+        <label htmlFor="deleteConfirmation" className={`block text-sm font-medium text-[${colors.TEXT_SECONDARY}] mb-1`}>
+          Type your email to confirm: <span className={`text-[${colors.TEXT_PRIMARY}]`}>{userEmail}</span>
+        </label>
+        <input
+          type="email"
+          id="deleteConfirmation"
+          value={deleteConfirmation}
+          onChange={(e) => setDeleteConfirmation(e.target.value)}
+          className={`w-full bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}] rounded-md text-[${colors.TEXT_PRIMARY}] px-4 py-2 text-sm
+            focus:border-[${colors.ACCENT_PURPLE}] focus:ring-2 focus:ring-[${colors.ACCENT_PURPLE}]/30 focus:outline-none
+            placeholder:text-[${colors.TEXT_DISABLED}]`}
+          placeholder="Enter your email to confirm"
+        />
+      </div>
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={() => setShowDeleteModal(false)}
+          className={`px-4 py-2 bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] text-sm font-medium rounded-md hover:bg-[${colors.BORDER}] transition-colors`}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDeleteAccount}
+          className={`px-4 py-2 bg-[${colors.ACCENT_RED}] text-[${colors.PAGE_BG}] text-sm font-medium rounded-md hover:bg-[${colors.ACCENT_RED}]/90 transition-colors`}
+        >
+          Delete Account
+        </button>
+      </div>
+    </div>
+  </div>
+)
 
 export default Profile 

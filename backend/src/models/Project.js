@@ -52,10 +52,10 @@ const projectSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: ['active', 'completed', 'archived'],
-      message: 'Status must be one of: active, completed, archived'
+      values: ['not started', 'active', 'on hold', 'completed', 'archived'],
+      message: 'Status must be one of: not started, active, on hold, completed, archived'
     },
-    default: 'active'
+    default: 'not started'
   },
   startDate: {
     type: Date,

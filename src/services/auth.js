@@ -8,14 +8,10 @@ const authAPI = {
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
-      
-      // Store token and user data
       localStorage.setItem(TOKEN_KEY, token);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
-      
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     }
   },
@@ -23,26 +19,41 @@ const authAPI = {
   async register(userData) {
     try {
       const response = await api.post('/auth/register', userData);
-      const { token, user } = response.data;
-      
-      // Store token and user data
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+
+  async resendVerification(email) {
+    try {
+      const response = await api.post('/auth/resend-verification', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async verifyEmail(verificationToken) {
+    try {
+      const response = await api.get(`/auth/verify-email/${verificationToken}`);
+      return response.data;
+    } catch (error) {
       throw error;
     }
   },
 
   logout() {
+    console.log('--- AUTH SERVICE: LOGOUT ---');
+    console.log('🚀 Initiating logout...');
     // Clear token and user data
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    console.log('✅ Token and user removed from localStorage.');
     
-    // Redirect to auth page
-    window.location.href = '/auth';
+    // Redirect to login page
+    console.log('Redirecting to /login page.');
+    window.location.href = '/login';
   },
 
   async getCurrentUser() {
@@ -58,7 +69,9 @@ const authAPI = {
       const cachedUser = localStorage.getItem(USER_KEY);
       if (cachedUser) {
         try {
-          return JSON.parse(cachedUser);
+          const parsedUser = JSON.parse(cachedUser);
+          console.log('Using cached user data:', parsedUser);
+          return parsedUser;
         } catch (e) {
           console.error('Error parsing cached user:', e);
         }
@@ -73,12 +86,16 @@ const authAPI = {
         return null;
       }
       
+      console.log('User data from server:', response.data);
+      
       // Store the fetched user data
       localStorage.setItem(USER_KEY, JSON.stringify(response.data));
       
       console.log('Current user fetched successfully:', {
         id: response.data.id,
-        email: response.data.email
+        email: response.data.email,
+        name: response.data.name,
+        displayName: response.data.displayName
       });
       
       return response.data;
@@ -99,6 +116,75 @@ const authAPI = {
 
   getToken() {
     return localStorage.getItem(TOKEN_KEY);
+  },
+
+  async checkDisplayName(displayName) {
+    try {
+      const response = await api.post('/auth/check-displayname', { displayName });
+      return response.data;
+    } catch (error) {
+      // Don't throw for expected check failures, just return data
+      return error.response?.data || { isAvailable: false, message: "Error checking name." };
+    }
+  },
+
+  async updateUserInfo(userData) {
+    try {
+      console.log('=== AUTH SERVICE: UPDATE USER INFO ===');
+      console.log('Sending user data:', userData);
+      
+      const response = await api.patch('/auth/profile', userData);
+      
+      console.log('Response received:', response.data);
+      
+      // Update the cached user data
+      localStorage.setItem(USER_KEY, JSON.stringify(response.data));
+      
+      console.log('Updated cached user data');
+      
+      return response.data;
+    } catch (error) {
+      console.error('=== AUTH SERVICE: UPDATE USER INFO ERROR ===');
+      console.error('Error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
+  },
+
+  async changePassword(passwordData) {
+    try {
+      const response = await api.patch('/auth/change-password', passwordData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateAvatar(formData) {
+    try {
+      const response = await api.patch('/auth/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      // Update the cached user data
+      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async deleteAccount() {
+    try {
+      const response = await api.delete('/auth/account');
+      // Clear local storage after successful deletion
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

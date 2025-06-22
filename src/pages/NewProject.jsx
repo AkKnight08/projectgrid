@@ -394,123 +394,44 @@ const NewProject = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setFormError(null)
-    setSuccess(null)
 
-    // Validate form
-    if (!form.name) {
-      setFormError('Project name is required.')
+    if (!user) {
+      console.error('User not authenticated:', user)
+      setFormError('User not authenticated. Please log in again.')
       return
     }
 
-    if (!isQuickAdd) {
-      if (!form.description) {
-        setFormError('Description is required.')
-        return
-      }
-      if (!form.startDate) {
-        setFormError('Start date is required.')
-        return
-      }
-      if (!form.endDate) {
-        setFormError('Deadline/target date is required.')
-        return
-      }
+    if (!form.name) {
+      setFormError('Project name is required')
+      return
     }
 
+    setFormError('')
+    setSuccess('')
+
+    const projectData = {
+      ...form,
+      owner: user._id,
+      tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      milestones: milestones.filter(m => m.title),
+      collaborators: collaborators.filter(c => c),
+    }
+
+    console.log('Submitting project data:', projectData)
+
     try {
-      // First, get the current user's ID
-      const currentUser = await authAPI.getCurrentUser();
-      console.log('Current user:', currentUser);
-      
-      if (!currentUser || !currentUser.id) {
-        console.error('User not authenticated:', currentUser);
-        throw new Error('User not authenticated');
-      }
-
-      // Fetch user IDs for collaborators
-      const collaboratorEmails = collaborators.filter(c => c && c !== currentUser.email);
-      console.log('Fetching user IDs for collaborators:', collaboratorEmails);
-      
-      const memberPromises = collaboratorEmails.map(async (email) => {
-        try {
-          const response = await apiInstance.get(`/users/email/${encodeURIComponent(email)}`);
-          console.log(`Found user for email ${email}:`, response.data);
-          return {
-            user: response.data.id,
-            role: 'member',
-            status: 'active'
-          };
-        } catch (error) {
-          // 404 is expected for new users
-          if (error.response?.status === 404) {
-            console.log(`User not found for email ${email}, will be added as pending member`);
-            return {
-              email: email,
-              role: 'member',
-              status: 'pending'
-            };
-          }
-          // For other errors, log and rethrow
-          console.error(`Error looking up user ${email}:`, error);
-          throw error;
-        }
-      });
-
-      const additionalMembers = await Promise.all(memberPromises);
-      console.log('Additional members:', additionalMembers);
-
-      // Filter out pending members for now
-      const activeMembers = additionalMembers.filter(m => m.status === 'active');
-      const pendingMembers = additionalMembers.filter(m => m.status === 'pending');
-
-      // Ensure dates are in ISO format
-      const startDate = form.startDate ? new Date(form.startDate).toISOString() : undefined;
-      const endDate = form.endDate ? new Date(form.endDate).toISOString() : undefined;
-
-      const projectData = {
-        name: form.name,
-        description: form.description || '',
-        status: form.status === 'not started' ? 'active' : form.status,
-        startDate,
-        endDate,
-        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-        owner: currentUser.id,
-        members: [
-          {
-            user: currentUser.id,
-            role: 'admin'
-          },
-          ...activeMembers.map(m => ({
-            user: m.user,
-            role: m.role
-          }))
-        ],
-        pendingMembers: pendingMembers.map(m => ({
-          email: m.email,
-          role: m.role
-        })),
-        settings: {
-          visibility: 'private',
-          allowComments: true
-        }
-      }
-
-      console.log('Creating project with data:', projectData);
-      const result = await createProject(projectData)
-      
-      if (result) {
-        setSuccess('Project created!' + (pendingMembers.length > 0 ? 
-          ` ${pendingMembers.length} collaborator(s) will be invited once they join.` : ''));
-        // Clear draft
-        if (currentUser.id) {
-          localStorage.removeItem(`taskgrid_draft_${currentUser.id}`)
-        }
-        setTimeout(() => navigate('/projects'), 1000)
-      }
-    } catch (error) {
-      console.error('Project creation error:', error)
-      setFormError(error.response?.data?.message || error.message || 'Failed to create project')
+      const newProject = await createProject(projectData)
+      console.log('Project created:', newProject)
+      setSuccess(`Project "${newProject.name}" created successfully!`)
+      // Reset form
+      setForm({ name: '', description: '', status: 'not started', priority: 'medium', tags: '', startDate: '', endDate: '' })
+      setMilestones([{ title: '', date: '' }])
+      setCollaborators([''])
+      localStorage.removeItem(`taskgrid_draft_${user.id}`)
+      setTimeout(() => navigate(`/projects/${newProject._id}`), 1500)
+    } catch (err) {
+      console.error('Project creation error:', err)
+      setFormError(err.message || 'Failed to create project')
     }
   }
 

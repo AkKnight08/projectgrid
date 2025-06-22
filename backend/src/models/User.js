@@ -1,78 +1,50 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  displayName: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
-  },
-  avatar: {
-    type: String,
-    default: '',
-  },
-  settings: {
-    theme: {
-      type: String,
-      enum: ['light', 'dark'],
-      default: 'light',
-    },
-    notifications: {
-      type: Boolean,
-      default: true,
-    },
-  },
-}, {
-  timestamps: true,
-});
+  name: { type: String, required: true },
+  displayName: { type: String },
+  email: { type: String, required: true, unique: true },
+  password: { type: String },
+  avatar: { type: String, default: 'default-avatar.svg' },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  isEmailVerified: { type: Boolean, default: false },
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
+}, { timestamps: true });
 
-// Create indexes
-userSchema.index({ email: 1 });
-
-// Hash password before saving
+// Password hashing middleware
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+  if (!this.isModified('password') || !this.password) {
+    return next();
+  }
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 });
 
-// Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  console.log('Comparing passwords for user:', this.email);
-  try {
-    const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Password comparison result:', isMatch);
-    return isMatch;
-  } catch (error) {
-    console.error('Error comparing passwords:', error);
-    throw error;
-  }
+// Method to generate email verification token
+userSchema.methods.getEmailVerificationToken = function() {
+  const verificationToken = crypto.randomBytes(20).toString('hex');
+
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+  
+  this.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // Token expires in 10 minutes
+
+  return verificationToken;
+};
+
+// Method to compare passwords
+userSchema.methods.comparePassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);

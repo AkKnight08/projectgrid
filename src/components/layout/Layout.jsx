@@ -25,7 +25,7 @@ const Layout = () => {
         </div>
         <div className="flex-1 flex flex-col">
           <Navbar onSearch={handleSearch} />
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto p-6 bg-[#1E1E1E]">
             <Outlet context={{ searchQuery }} />
           </main>
         </div>

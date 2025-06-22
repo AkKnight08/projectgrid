@@ -11,7 +11,9 @@ import {
   PlusIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ListBulletIcon,
 } from '@heroicons/react/24/outline'
+import { useTheme } from '../../context/ThemeContext'
 
 const navItems = [
   { path: '/', icon: HomeIcon, label: 'Dashboard' },
@@ -57,7 +59,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     // Add your logout logic here
-    navigate('/auth')
+    navigate('/login')
   }
 
   return (

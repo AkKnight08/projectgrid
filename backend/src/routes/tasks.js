@@ -116,7 +116,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Update task
-router.patch('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
@@ -184,9 +184,14 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    await task.remove();
+    await Task.findByIdAndDelete(req.params.id);
+
+    // Also remove the task reference from the project
+    await Project.findByIdAndUpdate(task.project, { $pull: { tasks: task._id } });
+
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
+    console.error('Error deleting task:', error);
     res.status(500).json({ message: 'Error deleting task' });
   }
 });

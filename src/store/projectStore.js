@@ -91,25 +91,16 @@ export const useProjectStore = create(
       updateProject: async (id, projectData) => {
         try {
           set({ isLoading: true, error: null })
-          const response = await projectsAPI.update(id, projectData)
-          const currentState = get()
+          const updatedProject = await projectsAPI.update(id, projectData)
           
-          set({
-            projects: (currentState.projects || []).map(p => {
-              if (p._id === id) {
-                const layoutChanged = JSON.stringify(p.layout) !== JSON.stringify(response.data.layout)
-                const statusChanged = p.status !== response.data.status
-                if (!layoutChanged && !statusChanged) {
-                  return p
-                }
-                return response.data
-              }
-              return p
-            }),
-            currentProject: currentState.currentProject?._id === id ? response.data : currentState.currentProject,
+          set(state => ({
+            projects: state.projects.map(p => 
+              p._id === id ? { ...p, ...updatedProject } : p
+            ),
+            currentProject: state.currentProject?._id === id ? { ...state.currentProject, ...updatedProject } : state.currentProject,
             isLoading: false
-          })
-          return response.data
+          }))
+          return updatedProject
         } catch (error) {
           set({ 
             error: error.response?.data?.message || 'Failed to update project',

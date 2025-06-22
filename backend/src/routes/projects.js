@@ -297,45 +297,26 @@ router.get('/:id', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching project:', error);
-    res.status(500).json({ 
-      message: 'Error fetching project', 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ message: 'Error fetching project' });
   }
 });
 
 // Update project
-router.patch('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
-    const project = await Project.findOne({
-      _id: req.params.id,
-      $or: [
-        { owner: req.user._id },
-        { 'members.user': req.user._id, 'members.role': 'admin' },
-      ],
-    });
+    const project = await Project.findOneAndUpdate(
+      { _id: req.params.id, $or: [{ owner: req.user._id }, { 'members.user': req.user._id, 'members.role': 'admin' }] },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    ).populate('owner members.user', 'displayName email');
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: 'Project not found or you do not have permission to edit it.' });
     }
 
-    const updates = Object.keys(req.body);
-    const allowedUpdates = ['name', 'description', 'status', 'startDate', 'endDate', 'tags', 'settings', 'layout'];
-    const isValidOperation = updates.every(update => allowedUpdates.includes(update));
-
-    if (!isValidOperation) {
-      return res.status(400).json({ message: 'Invalid updates' });
-    }
-
-    updates.forEach(update => {
-      project[update] = req.body[update];
-    });
-
-    await project.save();
     res.json(project);
   } catch (error) {
-    res.status(500).json({ message: 'Error updating project' });
+    res.status(400).json({ message: 'Error updating project', error: error.message });
   }
 });
 

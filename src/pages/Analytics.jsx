@@ -287,8 +287,9 @@ const Analytics = () => {
     // Team Performance Data with detailed metrics
     const teamPerformanceData = projects.map(project => {
       const projectTasks = tasks.filter(task => task.project === project._id)
-      const completedTasks = projectTasks.filter(task => task.status === 'completed')
+      const completedTasks = projectTasks.filter(task => task.status === 'completed' && task.completedAt)
       const onTimeTasks = completedTasks.filter(task => {
+        if (!task.dueDate) return false
         const dueDate = parseISO(task.dueDate)
         const completionDate = parseISO(task.completedAt)
         return completionDate <= dueDate
@@ -314,11 +315,11 @@ const Analytics = () => {
 
     // Activity Tracking Data with detailed timeline
     const activityData = tasks
-      .filter(task => task.status === 'completed')
+      .filter(task => task.status === 'completed' && task.completedAt)
       .map(task => ({
         date: format(parseISO(task.completedAt), 'MMM dd'),
         completed: 1,
-        overdue: task.completedAt > task.dueDate ? 1 : 0,
+        overdue: task.dueDate && (task.completedAt > task.dueDate) ? 1 : 0,
         project: task.project,
         assignee: task.assignee,
         priority: task.priority

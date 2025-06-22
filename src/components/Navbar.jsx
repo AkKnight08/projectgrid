@@ -11,13 +11,30 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useProjectStore } from '../store/projectStore';
+import { useUserStore } from '../store/userStore';
 import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import authAPI from '../services/auth';
 import './Navbar.css';
+import defaultAvatar from '/images/default-avatar.svg';
+
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) {
+    return defaultAvatar;
+  }
+  if (avatarPath.startsWith('blob:')) {
+    return avatarPath;
+  }
+  if (avatarPath.startsWith('/uploads')) {
+    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${avatarPath}`;
+  }
+  return defaultAvatar;
+};
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { searchProjects, searchResults, isSearching } = useProjectStore();
+  const { user } = useUserStore();
   const { theme, handleThemeChange } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -102,6 +119,10 @@ const Navbar = () => {
     }
   };
 
+  const handleLogout = () => {
+    authAPI.logout();
+  };
+
   return (
     <nav className={`navbar bg-[${colors.PANEL_BG}] border-b border-[${colors.BORDER}]`}>
       <div className="site-title-container">
@@ -183,7 +204,17 @@ const Navbar = () => {
             className={`profile-btn text-[${colors.TEXT_PRIMARY}]`}
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
-            <div className={`profile-avatar bg-[${colors.ACCENT_PURPLE}] text-[${colors.PAGE_BG}]`}>AK</div>
+            <img
+              src={getAvatarUrl(user?.avatar)}
+              alt="Profile"
+              className="h-8 w-8 rounded-full object-cover bg-gray-700"
+              onError={(e) => {
+                if (e.target.src !== defaultAvatar) {
+                  e.target.onerror = null; // Prevent infinite loop
+                  e.target.src = defaultAvatar;
+                }
+              }}
+            />
             <ChevronDownIcon className={`profile-arrow text-[${colors.ICON_DEFAULT}]`} />
           </button>
 
@@ -191,7 +222,7 @@ const Navbar = () => {
             <div className={`profile-panel bg-[${colors.CARD_INNER_BG}] border border-[${colors.BORDER}]`}>
               <Link to="/profile" className={`profile-item text-[${colors.TEXT_PRIMARY}] hover:bg-[${colors.PANEL_BG}]`}>Profile</Link>
               <Link to="/settings" className={`profile-item text-[${colors.TEXT_PRIMARY}] hover:bg-[${colors.PANEL_BG}]`}>Settings</Link>
-              <button className={`profile-item text-[${colors.ACCENT_RED}] hover:bg-[${colors.PANEL_BG}]`}>Sign out</button>
+              <button onClick={handleLogout} className={`profile-item text-[${colors.ACCENT_RED}] hover:bg-[${colors.PANEL_BG}]`}>Sign out</button>
             </div>
           )}
         </div>

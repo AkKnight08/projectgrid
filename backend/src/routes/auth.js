@@ -3,138 +3,69 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { register, login, getMe, verifyEmail, resendVerificationEmail } = require('../controllers/authController');
+const { body } = require('express-validator');
 const { auth } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
-// Register a new user
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password, displayName } = req.body;
-
-    // Validate input
-    if (!email || !password || !displayName) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Create new user
-    user = new User({
-      email,
-      password,
-      displayName,
-    });
-
-    // Save user (password will be hashed by the pre-save hook)
-    await user.save();
-
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        displayName: user.displayName,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+// --- Multer Setup for Avatar Uploads ---
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, '..', '..', 'public', 'uploads', 'avatars');
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `${req.user._id}-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
 });
 
-// Login user
-router.post('/login', async (req, res) => {
-  try {
-    console.log('Login attempt received');
-    const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      console.log('Missing credentials:', { email: !!email, password: !!password });
-      return res.status(400).json({ message: 'Email and password are required' });
+const upload = multer({ 
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    if (filetypes.test(file.mimetype) && filetypes.test(path.extname(file.originalname).toLowerCase())) {
+      return cb(null, true);
     }
-
-    // Check if user exists
-    const normalizedEmail = email.trim().toLowerCase();
-    console.log('Looking up user with email:', normalizedEmail);
-    const user = await User.findOne({ email: normalizedEmail });
-    
-    if (!user) {
-      console.log('User not found:', normalizedEmail);
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-    console.log('User found:', { id: user._id, email: user.email });
-
-    // Validate password
-    console.log('Attempting password comparison');
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      console.log('Invalid password for user:', normalizedEmail);
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-    console.log('Password validated successfully');
-
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id.toString() },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    console.log('Login successful for user:', normalizedEmail);
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        displayName: user.displayName,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    cb(new Error('File upload only supports JPEG, PNG, and GIF'));
   }
 });
 
-// Get current user
-router.get('/me', auth, async (req, res) => {
-  try {
-    console.log('Getting current user for ID:', req.user._id);
-    
-    // No need to find user again since auth middleware already did that
-    const user = req.user;
-    
-    if (!user) {
-      console.log('User not found in request');
-      return res.status(404).json({ message: 'User not found' });
-    }
+// @route   POST api/auth/register
+// @desc    Register user
+// @access  Public
+router.post('/register', [
+    body('name', 'Name is required').not().isEmpty(),
+    body('email', 'Please include a valid email').isEmail(),
+    body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+], register);
 
-    console.log('User found:', { id: user._id, email: user.email });
-    
-    res.json({
-      id: user._id,
-      email: user.email,
-      displayName: user.displayName,
-      role: user.role,
-      settings: user.settings
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ message: 'Server error while fetching user' });
-  }
-});
+// @route   POST api/auth/login
+// @desc    Authenticate user & get token
+// @access  Public
+router.post('/login', [
+    body('email', 'Please include a valid email').isEmail(),
+    body('password', 'Password is required').exists()
+], login);
+
+// @route   GET api/auth/me
+// @desc    Get current user
+// @access  Private
+router.get('/me', auth, getMe);
+
+// @route   GET api/auth/verify-email/:token
+// @desc    Verify email address
+// @access  Public
+router.get('/verify-email/:token', verifyEmail);
+
+// @route   POST api/auth/resend-verification
+// @desc    Resend email verification token
+// @access  Public
+router.post('/resend-verification', resendVerificationEmail);
 
 // Update user settings
 router.patch('/settings', auth, async (req, res) => {
@@ -173,6 +104,149 @@ router.patch('/settings', auth, async (req, res) => {
     console.error('Settings update error:', error);
     res.status(500).json({ message: 'Error updating settings' });
   }
+});
+
+// Update user profile information
+router.patch('/profile', auth, async (req, res) => {
+  try {
+    // Re-fetch the user document to ensure we have a full Mongoose instance
+    const userToUpdate = await User.findById(req.user._id);
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    console.log('=== PROFILE UPDATE REQUEST ===');
+    console.log('Request body:', req.body);
+    
+    const { fullName, displayName } = req.body;
+    console.log('Extracted data:', { fullName, displayName });
+    
+    if (displayName) {
+      // Final uniqueness check on save
+      const existingUser = await User.findOne({ 
+        displayName: { $regex: new RegExp(`^${displayName}$`, 'i') },
+        _id: { $ne: userToUpdate._id } 
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: `Display name "${displayName}" is already taken.` });
+      }
+    }
+    
+    // Update name field (which corresponds to fullName in frontend)
+    if (fullName !== undefined) {
+      console.log('Updating name from', userToUpdate.name, 'to', fullName);
+      userToUpdate.name = fullName;
+    }
+    
+    // Update displayName field
+    if (displayName !== undefined) {
+      console.log('Updating displayName from', userToUpdate.displayName, 'to', displayName);
+      userToUpdate.displayName = displayName;
+    }
+
+    console.log('About to save user...');
+    await userToUpdate.save(); // This will now work
+    console.log('User saved successfully');
+    
+    // Return user without password
+    const userResponse = userToUpdate.toObject();
+    delete userResponse.password;
+    
+    console.log('Sending response:', userResponse);
+    
+    res.json(userResponse);
+  } catch (error) {
+    console.error('=== PROFILE UPDATE ERROR ===');
+    console.error('Error details:', error);
+    res.status(500).json({ message: 'Error updating profile', error: error.message });
+  }
+});
+
+// Change password
+router.patch('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+    
+    // Verify current password
+    const isPasswordValid = await req.user.comparePassword(currentPassword);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    
+    // Update password
+    req.user.password = newPassword;
+    await req.user.save();
+    
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ message: 'Error changing password' });
+  }
+});
+
+// @route   POST /api/auth/check-displayname
+// @desc    Check if a display name is available
+// @access  Private
+router.post('/check-displayname', auth, async (req, res) => {
+  try {
+    const { displayName } = req.body;
+    if (!displayName) {
+      return res.status(400).json({ message: 'Display name is required.' });
+    }
+
+    // Check if the display name is taken by another user (case-insensitive)
+    const existingUser = await User.findOne({ 
+      displayName: { $regex: new RegExp(`^${displayName}$`, 'i') },
+      _id: { $ne: req.user._id } 
+    });
+
+    if (existingUser) {
+      return res.json({ isAvailable: false, message: 'Display name is already taken.' });
+    }
+
+    res.json({ isAvailable: true, message: 'Display name is available!' });
+  } catch (error) {
+    console.error('Display name check error:', error);
+    res.status(500).json({ message: 'Error checking display name.' });
+  }
+});
+
+// Delete account
+router.delete('/account', auth, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.user._id);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Account deletion error:', error);
+    res.status(500).json({ message: 'Error deleting account' });
+  }
+});
+
+// @route   PATCH /api/auth/avatar
+// @desc    Update user avatar
+// @access  Private
+router.patch('/avatar', auth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    user.avatar = avatarUrl;
+    await user.save();
+
+    res.json({ avatar: avatarUrl, user });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating avatar.', error: error.message });
+  }
+}, (error, req, res, next) => {
+  res.status(400).json({ message: error.message });
 });
 
 module.exports = router; 

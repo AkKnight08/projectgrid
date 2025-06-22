@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import authAPI from '../services/auth'
+import { usersAPI } from '../services/api'
 
 export const useUserStore = create(
   persist(
@@ -14,8 +15,8 @@ export const useUserStore = create(
       login: async (email, password) => {
         try {
           set({ isLoading: true, error: null })
-          const { user } = await authAPI.login(email, password)
-          set({ user, isLoading: false, lastFetchTime: Date.now() })
+          const { token, user } = await authAPI.login(email, password)
+          set({ user, token, isLoading: false, lastFetchTime: Date.now() })
           return true
         } catch (error) {
           set({
@@ -26,12 +27,12 @@ export const useUserStore = create(
         }
       },
 
-      register: async (email, password, displayName) => {
+      register: async (email, password, name) => {
         try {
           set({ isLoading: true, error: null })
           
           // Validate input
-          if (!email || !password || !displayName) {
+          if (!email || !password || !name) {
             set({
               error: 'All fields are required',
               isLoading: false,
@@ -58,8 +59,8 @@ export const useUserStore = create(
             return false
           }
 
-          const { user } = await authAPI.register({ email, password, displayName })
-          set({ user, isLoading: false, lastFetchTime: Date.now() })
+          const { token, user } = await authAPI.register({ email, password, name })
+          set({ user, token, isLoading: false, lastFetchTime: Date.now() })
           return true
         } catch (error) {
           set({
@@ -111,7 +112,75 @@ export const useUserStore = create(
         }
       },
 
+      updateUserInfo: async (userData) => {
+        try {
+          set({ isLoading: true, error: null })
+          const updatedUser = await authAPI.updateUserInfo(userData)
+          set({ user: updatedUser, isLoading: false })
+          return true
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Failed to update profile',
+            isLoading: false,
+          })
+          return false
+        }
+      },
+
+      changePassword: async (passwordData) => {
+        try {
+          set({ isLoading: true, error: null })
+          await authAPI.changePassword(passwordData)
+          set({ isLoading: false })
+          return true
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Failed to change password',
+            isLoading: false,
+          })
+          return false
+        }
+      },
+
+      updateAvatar: async (file) => {
+        try {
+          set({ isLoading: true, error: null });
+          const formData = new FormData();
+          formData.append('avatar', file);
+
+          const data = await authAPI.updateAvatar(formData);
+          
+          set({ user: data.user, isLoading: false });
+          return { success: true, avatar: data.avatar };
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Failed to update avatar',
+            isLoading: false,
+          });
+          return { success: false, error: error.response?.data?.message };
+        }
+      },
+
+      deleteAccount: async () => {
+        try {
+          set({ isLoading: true, error: null })
+          await authAPI.deleteAccount()
+          set({ user: null, token: null, isLoading: false })
+          return true
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Failed to delete account',
+            isLoading: false,
+          })
+          return false
+        }
+      },
+
       clearError: () => set({ error: null }),
+      
+      setUser: (user) => set({ user }),
+      
+      setToken: (token) => set({ token }),
     }),
     {
       name: 'user-storage',

@@ -1,615 +1,288 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useProjectStore } from '../store/projectStore'
 import { useTaskStore } from '../store/taskStore'
-import { useUserStore } from '../store/userStore'
 import TaskList from '../components/tasks/TaskList'
-import TaskForm from '../components/tasks/TaskForm'
-import { 
-  PencilIcon, 
+import ProjectSettings from '../components/projects/ProjectSettings'
+import {
+  PencilIcon,
   TrashIcon,
-  CalendarIcon,
-  UserGroupIcon,
+  UserPlusIcon,
+  EnvelopeIcon,
+  ClockIcon,
+  ChevronRightIcon,
+  InformationCircleIcon,
+  UsersIcon,
   TagIcon,
   ChartBarIcon,
-  ClockIcon,
-  DocumentTextIcon,
-  ChatBubbleLeftIcon,
-  PaperClipIcon,
-  AdjustmentsHorizontalIcon,
-  Squares2X2Icon,
-  ListBulletIcon,
-  PlusIcon
+  ClipboardDocumentListIcon as ClipboardListIcon,
 } from '@heroicons/react/24/outline'
-import { Tab } from '@headlessui/react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useHotkeys } from 'react-hotkeys-hook'
-import { format } from 'date-fns'
-import { toast } from 'react-hot-toast'
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
-import { Pie, Bar } from 'react-chartjs-2'
+import { motion } from 'framer-motion'
+import { useTheme } from '../context/ThemeContext'
+import { DARK_MODE_COLORS, BACKGROUND_COLORS } from '../constants/colors'
+import TaskForm from '../components/tasks/TaskForm'
 
-// Register ChartJS components
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
+const Card = ({ children, className = '' }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    style={{ backgroundColor: DARK_MODE_COLORS.CARD_INNER_BG }}
+    className={`rounded-xl shadow-lg overflow-hidden ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 
 const ProjectDetails = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { currentProject, fetchProjectById, updateProject, deleteProject, isLoading: projectLoading } = useProjectStore()
-  const { tasks, fetchProjectTasks, createTask, updateTask, deleteTask, isLoading: tasksLoading } = useTaskStore()
-  const { user } = useUserStore()
-  
-  // State management
+  const { currentProject, fetchProjectById, deleteProject, isLoading: projectLoading } = useProjectStore()
+  const { tasks, fetchProjectTasks, updateTask, deleteTask, isLoading: tasksLoading } = useTaskStore()
   const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState('')
-  const [editedDescription, setEditedDescription] = useState('')
-  const [viewMode, setViewMode] = useState('list') // 'list' | 'board' | 'timeline'
-  const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [selectedTab, setSelectedTab] = useState(0)
-  const [filters, setFilters] = useState({
-    status: 'all',
-    priority: 'all',
-    assignee: 'all',
-    dateRange: 'all'
-  })
+  const [isAddingTask, setIsAddingTask] = useState(false)
+  const { theme } = useTheme()
 
-  // Load data
+  // Get colors based on current theme
+  const colors = theme === 'dark' ? DARK_MODE_COLORS : {
+    PAGE_BG: BACKGROUND_COLORS.MAIN,
+    PANEL_BG: '#1E1E1E', // Matching settings page
+    CARD_INNER_BG: '#242424', // Matching settings page
+    BORDER: '#2E2E2E',
+    TEXT_PRIMARY: '#E0E0E0',
+    TEXT_SECONDARY: '#A0A0A0',
+    TEXT_DISABLED: '#999999',
+    ACCENT_PURPLE: '#7C3AED',
+    ACCENT_TEAL: '#0D9488',
+    ACCENT_ORANGE: '#D97706',
+    ACCENT_RED: '#DC2626',
+    ACCENT_GREEN: '#059669',
+    ICON_DEFAULT: '#666666',
+    ICON_HOVER: '#1A1A1A'
+  }
+
   useEffect(() => {
-    const loadData = async () => {
-      await Promise.all([
-        fetchProjectById(id),
-        fetchProjectTasks(id)
-      ])
-    }
-    loadData()
+    fetchProjectById(id)
+    fetchProjectTasks(id)
   }, [id, fetchProjectById, fetchProjectTasks])
 
-  // Set initial form values
-  useEffect(() => {
-    if (currentProject) {
-      setEditedName(currentProject.name)
-      setEditedDescription(currentProject.description)
-    }
-  }, [currentProject])
-
-  // Keyboard shortcuts
-  useHotkeys('t', () => setShowQuickAdd(true))
-  useHotkeys('esc', () => {
-    setShowQuickAdd(false)
-    setIsEditing(false)
-  })
-
-  // Handlers
-  const handleUpdateProject = async () => {
-    try {
-      await updateProject(id, {
-        name: editedName,
-        description: editedDescription
-      })
-      setIsEditing(false)
-      toast.success('Project updated successfully')
-    } catch (error) {
-      console.error('Failed to update project:', error)
-      toast.error('Failed to update project')
-    }
-  }
-
   const handleDeleteProject = async () => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        await deleteProject(id)
-        navigate('/')
-        toast.success('Project deleted successfully')
-      } catch (error) {
-        console.error('Failed to delete project:', error)
-        toast.error('Failed to delete project')
-      }
+    if (window.confirm('Are you sure you want to delete this project? This action is permanent and cannot be undone.')) {
+      await deleteProject(id)
+      navigate('/dashboard')
     }
   }
 
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }))
+  if (projectLoading || !currentProject) {
+    return <div style={{ backgroundColor: colors.PANEL_BG }} className="flex justify-center items-center h-screen text-white">Loading project...</div>
   }
 
-  // Calculate task statistics
-  const taskStats = useCallback(() => {
-    const total = tasks.length
-    const completed = tasks.filter(task => task.status === 'completed').length
-    const inProgress = tasks.filter(task => task.status === 'in-progress').length
-    const todo = tasks.filter(task => task.status === 'todo').length
+  const {
+    name,
+    description,
+    status,
+    startDate,
+    endDate,
+    tags,
+    members,
+    pendingMembers,
+    settings,
+    owner,
+    createdAt,
+    updatedAt
+  } = currentProject
 
-    return {
-      total,
-      completed,
-      inProgress,
-      todo,
-      completionRate: total > 0 ? (completed / total) * 100 : 0
+  const completedTasks = tasks.filter(task => task.status === 'completed').length
+  const totalTasks = tasks.length
+  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
+  const getStatusChipStyle = (status) => {
+    switch (status) {
+      case 'not started': return 'bg-gray-500/20 text-gray-400';
+      case 'on-track': return 'bg-green-500/20 text-green-400';
+      case 'at-risk': return 'bg-yellow-500/20 text-yellow-400';
+      case 'off-track': return 'bg-red-500/20 text-red-400';
+      case 'completed': return 'bg-blue-500/20 text-blue-400';
+      default: return 'bg-gray-500/20 text-gray-400';
     }
-  }, [tasks])
-
-  // Prepare chart data
-  const taskStatusData = {
-    labels: ['Completed', 'In Progress', 'To Do'],
-    datasets: [
-      {
-        data: [
-          taskStats().completed,
-          taskStats().inProgress,
-          taskStats().todo
-        ],
-        backgroundColor: [
-          'rgba(34, 197, 94, 0.8)',  // green
-          'rgba(59, 130, 246, 0.8)',  // blue
-          'rgba(234, 179, 8, 0.8)',   // yellow
-        ],
-        borderColor: [
-          'rgb(34, 197, 94)',
-          'rgb(59, 130, 246)',
-          'rgb(234, 179, 8)',
-        ],
-        borderWidth: 1,
-      },
-    ],
-  }
-
-  const taskPriorityData = {
-    labels: ['High', 'Medium', 'Low'],
-    datasets: [
-      {
-        label: 'Tasks by Priority',
-        data: [
-          tasks.filter(task => task.priority === 'high').length,
-          tasks.filter(task => task.priority === 'medium').length,
-          tasks.filter(task => task.priority === 'low').length,
-        ],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',   // red
-          'rgba(234, 179, 8, 0.8)',    // yellow
-          'rgba(34, 197, 94, 0.8)',    // green
-        ],
-      },
-    ],
-  }
-
-  // Loading state
-  if (projectLoading || tasksLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    )
-  }
-
-  // Error state
-  if (!currentProject) {
-    return (
-      <div className="text-center text-gray-500 dark:text-gray-400">
-        Project not found
-      </div>
-    )
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Project Header */}
-      <div className="px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            {isEditing ? (
-              <div className="flex-1 space-y-4">
-                <input
-                  type="text"
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="block w-full text-2xl font-semibold text-gray-900 dark:text-gray-100 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-primary-500 focus:ring-0"
-                />
-                <textarea
-                  value={editedDescription}
-                  onChange={(e) => setEditedDescription(e.target.value)}
-                  className="block w-full text-gray-500 dark:text-gray-400 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-primary-500 focus:ring-0"
-                  rows={3}
-                />
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleUpdateProject}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1">
-                <div className="flex items-center gap-4">
-                  <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                    {currentProject.name}
-                  </h1>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    currentProject.status === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : currentProject.status === 'completed'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  }`}>
-                    {currentProject.status}
-                  </span>
-                </div>
-                <p className="mt-2 text-gray-500 dark:text-gray-400">
-                  {currentProject.description}
-                </p>
-              </div>
-            )}
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <PencilIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleDeleteProject}
-                className="p-2 text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <TrashIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Project Meta */}
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-1">
-              <CalendarIcon className="w-4 h-4" />
-              <span>Started {format(new Date(currentProject.startDate), 'MMM d, yyyy')}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ClockIcon className="w-4 h-4" />
-              <span>Due {format(new Date(currentProject.endDate), 'MMM d, yyyy')}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <UserGroupIcon className="w-4 h-4" />
-              <span>{currentProject.members?.length || 0} members</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ChartBarIcon className="w-4 h-4" />
-              <span>{currentProject.tasks?.length || 0} tasks</span>
-            </div>
-          </div>
-
-          {/* Tags */}
-          {currentProject.tags?.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {currentProject.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full"
-                >
-                  {tag}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      style={{ backgroundColor: colors.PANEL_BG }}
+      className="min-h-screen p-4 sm:p-6 lg:p-8 text-white"
+    >
+      <div className="max-w-8xl mx-auto">
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-4 mb-2">
+                <h1 style={{ color: colors.TEXT_PRIMARY }} className="text-4xl font-bold tracking-tight">{name}</h1>
+                <span className={`px-3 py-1 text-xs font-medium rounded-full capitalize ${getStatusChipStyle(status)}`}>
+                  {status}
                 </span>
-              ))}
-            </div>
-          )}
-
-          {/* Project Stats */}
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <ChartBarIcon className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                        Completion Rate
-                      </dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                          {taskStats().completionRate.toFixed(1)}%
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
               </div>
+              <p style={{ color: colors.TEXT_SECONDARY }} className="max-w-3xl">{description}</p>
             </div>
-
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <DocumentTextIcon className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                        Total Tasks
-                      </dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                          {taskStats().total}
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <ClockIcon className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                        In Progress
-                      </dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                          {taskStats().inProgress}
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <TagIcon className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                        Completed
-                      </dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                          {taskStats().completed}
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
+            <div className="flex gap-2">
+              <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors text-sm">
+                <PencilIcon className="w-4 h-4" /> Edit
+              </button>
+              <button onClick={handleDeleteProject} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm">
+                <TrashIcon className="w-4 h-4" /> Delete
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Charts */}
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Task Status</h3>
-              <div className="h-64">
-                <Pie data={taskStatusData} options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                    },
-                  },
-                }} />
-              </div>
-            </div>
+        {isEditing ? (
+          <ProjectSettings project={currentProject} onCancel={() => setIsEditing(false)} />
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <main className="xl:col-span-2 space-y-8">
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <ClipboardListIcon className="w-6 h-6 text-purple-400" />
+                      <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold">Tasks</h2>
+                    </div>
+                    <button onClick={() => setIsAddingTask(!isAddingTask)} className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 text-purple-300 rounded-lg hover:bg-purple-600/30 transition-colors text-sm">
+                      {isAddingTask ? 'Cancel' : 'Add Task'}
+                    </button>
+                  </div>
 
-            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Task Priority</h3>
-              <div className="h-64">
-                <Bar data={taskPriorityData} options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: false,
-                    },
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        stepSize: 1,
-                      },
-                    },
-                  },
-                }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                  {isAddingTask && (
+                    <div className="mb-6">
+                      <TaskForm projectId={id} onCancel={() => setIsAddingTask(false)} colors={colors} />
+                    </div>
+                  )}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex">
-          {/* Left Panel - Project Info & Settings */}
-          <div className="w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-y-auto">
-            <div className="p-4">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Project Details</h2>
-              
-              {/* Project Info */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Owner</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{user?.displayName || 'You'}</p>
+                  {tasksLoading ? <p style={{color: colors.TEXT_SECONDARY}}>Loading tasks...</p> : <TaskList tasks={tasks} onUpdateTask={updateTask} onDeleteTask={deleteTask} colors={colors} />}
                 </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Team Members</h3>
-                  <div className="mt-2 space-y-2">
-                    {currentProject.members?.map((member) => (
-                      <div key={member._id} className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {member.displayName?.[0]?.toUpperCase()}
-                          </span>
+              </Card>
+            </main>
+
+            {/* Sidebar with Details */}
+            <aside className="space-y-8">
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <ChartBarIcon className="w-6 h-6 text-purple-400"/>
+                    <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold">Progress</h2>
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span style={{color: colors.TEXT_SECONDARY}} className="text-sm">{completedTasks} of {totalTasks} tasks complete</span>
+                    <span style={{color: colors.TEXT_PRIMARY}} className="text-sm font-bold">{progressPercentage}%</span>
+                  </div>
+                  <div className="w-full h-3 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.1)'}}>
+                    <div
+                        style={{ width: `${progressPercentage}%`, backgroundColor: colors.ACCENT_GREEN }}
+                        className="h-3 rounded-full transition-all duration-500 ease-out"
+                    ></div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                      <InformationCircleIcon className="w-6 h-6 text-purple-400"/>
+                      <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold">Details</h2>
+                  </div>
+                  <div className="space-y-3">
+                    <DetailRow label="Owner" value={owner?.displayName || 'N/A'} colors={colors} />
+                    <DetailRow label="Start Date" value={startDate ? new Date(startDate).toLocaleDateString() : 'Not set'} colors={colors} />
+                    <DetailRow label="End Date" value={endDate ? new Date(endDate).toLocaleDateString() : 'Not set'} colors={colors} />
+                    <DetailRow label="Visibility" value={settings?.visibility} colors={colors} />
+                    <DetailRow label="Last Updated" value={new Date(updatedAt).toLocaleString()} colors={colors} />
+                  </div>
+                </div>
+              </Card>
+
+              {tags && tags.length > 0 && (
+                <Card>
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <TagIcon className="w-6 h-6 text-purple-400"/>
+                      <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold">Tags</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map(tag => (
+                        <span key={tag} style={{backgroundColor: 'rgba(255,255,255,0.1)'}} className="px-3 py-1 text-sm rounded-full capitalize" >{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              <Card>
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                      <UsersIcon className="w-6 h-6 text-purple-400"/>
+                      <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold">Team</h2>
+                    </div>
+                    <button className="p-2 rounded-full hover:bg-white/10 transition-colors" aria-label="Add Member">
+                      <UserPlusIcon className="w-5 h-5" style={{color: colors.TEXT_PRIMARY}} />
+                    </button>
+                  </div>
+                  <ul className="space-y-4">
+                    {members?.map(member => (
+                      <li key={member.user._id} className="flex items-center gap-4 hover:bg-white/5 p-2 rounded-lg transition-colors">
+                        <img src={member.user.avatar || '/images/default-avatar.svg'} alt={member.user.displayName} className="w-10 h-10 rounded-full" />
+                        <div>
+                          <p style={{ color: colors.TEXT_PRIMARY }} className="font-medium">{member.user.displayName}</p>
+                          <p style={{ color: colors.TEXT_SECONDARY }} className="text-sm capitalize">{member.role}</p>
                         </div>
-                        <span className="text-sm text-gray-900 dark:text-gray-100">{member.displayName}</span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
-              </div>
-            </div>
-          </div>
+              </Card>
 
-          {/* Right Panel - Task Board */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Task Board Header */}
-            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-              <div className="flex items-center justify-between">
-                <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-                  <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
-                    <Tab
-                      className={({ selected }) =>
-                        `w-full rounded-lg py-2.5 text-sm font-medium leading-5
-                        ${selected
-                          ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-gray-800 dark:hover:text-gray-200'
-                        }`
-                      }
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <ListBulletIcon className="w-4 h-4" />
-                        <span>List</span>
-                      </div>
-                    </Tab>
-                    <Tab
-                      className={({ selected }) =>
-                        `w-full rounded-lg py-2.5 text-sm font-medium leading-5
-                        ${selected
-                          ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-white/[0.12] hover:text-gray-800 dark:hover:text-gray-200'
-                        }`
-                      }
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <Squares2X2Icon className="w-4 h-4" />
-                        <span>Board</span>
-                      </div>
-                    </Tab>
-                  </Tab.List>
-
-                  {/* Task Board Content */}
-                  <div className="flex-1 overflow-y-auto p-4">
-                    <Tab.Panels>
-                      <Tab.Panel>
-                        <TaskList
-                          tasks={tasks}
-                          onUpdateTask={updateTask}
-                          onDeleteTask={deleteTask}
-                        />
-                      </Tab.Panel>
-                      <Tab.Panel>
-                        {/* Board view will be implemented here */}
-                        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                          Board view coming soon
-                        </div>
-                      </Tab.Panel>
-                    </Tab.Panels>
+              {pendingMembers && pendingMembers.length > 0 && (
+                <Card>
+                  <div className="p-6">
+                    <h2 style={{ color: colors.TEXT_PRIMARY }} className="text-xl font-semibold mb-4">Pending Invitations</h2>
+                    <ul className="space-y-4">
+                      {pendingMembers.map(invite => (
+                        <li key={invite.email} className="flex items-center justify-between hover:bg-white/5 p-2 rounded-lg transition-colors">
+                          <div className="flex items-center gap-3">
+                            <EnvelopeIcon className="w-5 h-5" style={{color: colors.TEXT_SECONDARY}}/>
+                            <div>
+                              <p style={{ color: colors.TEXT_PRIMARY }} className="font-medium">{invite.email}</p>
+                              <p style={{ color: colors.TEXT_SECONDARY }} className="text-sm capitalize">Role: {invite.role}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs" style={{color: colors.TEXT_DISABLED}}>
+                            <ClockIcon className="w-4 h-4" />
+                            <span>{new Date(invite.invitedAt).toLocaleDateString()}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </Tab.Group>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowQuickAdd(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    Add Task
-                  </button>
-                  <button
-                    className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    <AdjustmentsHorizontalIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Filters */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="rounded-md border-gray-300 dark:border-gray-600 text-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-                <select
-                  value={filters.priority}
-                  onChange={(e) => handleFilterChange('priority', e.target.value)}
-                  className="rounded-md border-gray-300 dark:border-gray-600 text-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="all">All Priority</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <select
-                  value={filters.assignee}
-                  onChange={(e) => handleFilterChange('assignee', e.target.value)}
-                  className="rounded-md border-gray-300 dark:border-gray-600 text-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="all">All Assignees</option>
-                  <option value="me">Assigned to Me</option>
-                  <option value="others">Assigned to Others</option>
-                </select>
-              </div>
-            </div>
+                </Card>
+              )}
+            </aside>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Add Task Modal */}
-      <AnimatePresence>
-        {showQuickAdd && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4"
-            >
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                  Quick Add Task
-                </h3>
-                <TaskForm
-                  projectId={id}
-                  onSubmit={async (data) => {
-                    await createTask(data)
-                    setShowQuickAdd(false)
-                  }}
-                  onCancel={() => setShowQuickAdd(false)}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </motion.div>
   )
 }
+
+const DetailRow = ({ label, value, colors }) => (
+  <div className="flex justify-between items-center capitalize py-1">
+    <p style={{ color: colors.TEXT_SECONDARY }} className="text-sm font-medium">{label}</p>
+    <p style={{ color: colors.TEXT_PRIMARY }} className="text-sm">{value}</p>
+  </div>
+)
 
 export default ProjectDetails 

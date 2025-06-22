@@ -1,0 +1,97 @@
+/* src/styles/TaskPage.css */
+
+.task-page-container {
+  display: flex;
+  height: calc(100vh - 65px); /* Full height minus navbar */
+  background-color: var(--page-bg);
+  color: var(--text-primary);
+}
+
+.task-list-panel {
+  width: 350px;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-list-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.task-list-actions button {
+  background-color: transparent;
+  border: none;
+  color: var(--icon-default);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.task-list-actions button:hover {
+  color: var(--icon-hover);
+}
+
+.task-list {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.task-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.task-item:hover {
+  background-color: var(--panel-bg-hover);
+}
+
+.task-item.selected {
+  background-color: var(--accent-purple-light);
+  border-right: 3px solid var(--accent-purple);
+}
+
+.task-item-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.task-item-details {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.priority-tag {
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.task-detail-panel {
+  flex-grow: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.no-task-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--text-secondary);
+} 
