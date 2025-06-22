@@ -72,6 +72,7 @@ router.post('/', auth, async (req, res) => {
       // Create custom tasks/milestones from request
       const tasksToCreate = tasks.map(task => ({
         ...task,
+        dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         project: project._id,
         creator: req.user._id // authenticated user as creator
       }));
