@@ -375,7 +375,10 @@ const NewProject = () => {
 
       // Update milestones if provided
       if (Array.isArray(importedData.tasks)) {
-        setMilestones(importedData.tasks)
+        setMilestones(importedData.tasks.map(task => ({
+          ...task,
+          date: task.dueDate || ''
+        })))
       }
 
       // Update collaborators if provided
