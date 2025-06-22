@@ -220,14 +220,6 @@ const Navbar = () => {
           )}
         </button>
 
-        <Link
-          to="/feedback"
-          className={`feedback-link text-[${colors.ICON_DEFAULT}] hover:text-[${colors.ICON_HOVER}] px-3 py-2`}
-          title="Send Feedback"
-        >
-          Feedback
-        </Link>
-
         <div className="profile-menu" ref={profileRef}>
           <button
             className={`profile-btn text-[${colors.TEXT_PRIMARY}]`}

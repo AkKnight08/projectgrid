@@ -12,6 +12,17 @@ import {
   ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 
+const getDaysLeft = (endDate) => {
+  if (!endDate) return null;
+  const today = new Date();
+  const end = new Date(endDate);
+  // Zero out time for accurate day diff
+  today.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+  const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+  return diff;
+}
+
 const ProjectCard = ({ project }) => {
   const { deleteProject, updateProject } = useProjectStore()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -57,6 +68,8 @@ const ProjectCard = ({ project }) => {
       )
     : 0
 
+  const daysLeft = getDaysLeft(project.endDate);
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
       {/* Header with Title and Options */}
@@ -69,6 +82,14 @@ const ProjectCard = ({ project }) => {
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
               {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
             </span>
+            {/* Days Left Indicator */}
+            {project.endDate && !['completed','archived'].includes(project.status) && (
+              daysLeft < 0 ? (
+                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Overdue</span>
+              ) : (
+                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">{daysLeft} days left</span>
+              )
+            )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
             {project.description}
