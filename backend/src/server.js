@@ -20,10 +20,25 @@ const userRoutes = require('./routes/users');
 
 const app = express();
 
+// --- CORS Configuration ---
+const allowedOrigins = [
+  'http://localhost:5173', // Local dev
+  process.env.FRONTEND_URL, // Production URL from env var
+  'https://planning-project-dwvlflgw3-akshays-projects-cc44e273.vercel.app' // Hardcoded production URL as a fallback
+].filter(Boolean); // Filter out falsy values like undefined
+
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(morgan('dev'));
