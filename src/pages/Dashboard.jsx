@@ -10,8 +10,6 @@ import { BACKGROUND_COLORS, DARK_MODE_COLORS } from '../constants/colors';
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
-  const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
   const { projects, fetchProjects, isLoading, metrics } = useProjectStore();
   const { updateTask } = useTaskStore();
   const { theme } = useTheme();
@@ -79,9 +77,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen bg-[#1E1E1E] p-6 pt-16 pb-12 overflow-hidden">
+    <div className="bg-[#1E1E1E] p-6 pt-16 pb-12">
       {/* Page Title */}
-      <div className="w-full h-full bg-[#1E1E1E] rounded-lg">
+      <div className="w-full bg-[#1E1E1E] rounded-lg">
         <h1 className={`text-[1.5rem] font-semibold text-[${colors.TEXT_PRIMARY}] mb-6 italic`}>Dashboard</h1>
 
         {/* Breadcrumbs */}
@@ -90,9 +88,9 @@ export default function Dashboard() {
         </div>
 
         {/* Content Area */}
-        <div className={`flex gap-8 bg-[#1E1E1E] rounded-lg mt-4 h-[calc(100%-8rem)]`}>
+        <div className={`flex gap-8 bg-[#1E1E1E] rounded-lg mt-4`}>
           {/* Main Content */}
-          <div className={`flex-1 bg-[#1E1E1E] overflow-y-auto rounded-lg p-8`}>
+          <div className={`flex-1 bg-[#1E1E1E] rounded-lg p-8`}>
             {/* Quick Stats */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
               {/* Total Projects Card */}
@@ -169,36 +167,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Action Bar */}
-            <div className={`flex flex-wrap items-center gap-4 py-4 border-b border-[${colors.BORDER}] mb-6`}>
-              <button className={`bg-[${colors.ACCENT_PURPLE}] text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-opacity-90 transition-colors duration-200`}>
-                ＋ Add New Project
-              </button>
-
-              <div className="flex flex-col gap-4">
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className={`bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] border border-[${colors.BORDER}] px-4 py-2 rounded-md text-sm cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] focus:border-[${colors.ACCENT_PURPLE}] focus:shadow-[0_0_0_2px_rgba(124,58,237,0.3)] outline-none`}
-                >
-                  <option value="all">All Projects</option>
-                  <option value="active">Active</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className={`bg-[${colors.CARD_INNER_BG}] text-[${colors.TEXT_PRIMARY}] border border-[${colors.BORDER}] px-4 py-2 rounded-md text-sm cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] focus:border-[${colors.ACCENT_PURPLE}] focus:shadow-[0_0_0_2px_rgba(124,58,237,0.3)] outline-none`}
-                >
-                  <option value="name">Name A→Z</option>
-                  <option value="progress">Progress %</option>
-                  <option value="deadline">Deadline Soonest</option>
-                </select>
-              </div>
-            </div>
-
             {/* Projects Grid */}
             <div className={`bg-[${colors.CARD_INNER_BG}] rounded-lg shadow-lg p-6 min-h-[400px]`}>
               {isLoading ? (
@@ -210,8 +178,6 @@ export default function Dashboard() {
                   projects={projects}
                   searchQuery={searchQuery}
                   viewMode="grid"
-                  filter={filter}
-                  sortBy={sortBy}
                   onUpdateTask={handleUpdateTask}
                 />
               )}

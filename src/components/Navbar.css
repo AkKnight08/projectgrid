@@ -326,4 +326,35 @@
 
 .profile-item:hover {
   background-color: rgba(255,255,255,0.1);
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.user-count-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #A0A0B5;
+  font-size: 0.875rem;
+  padding: 0 1rem;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  color: #A0A0B5;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.refresh-button:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.1);
 } 

@@ -8,6 +8,8 @@ import {
   ExclamationCircleIcon,
   LockClosedIcon,
   LockOpenIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
 } from '@heroicons/react/24/outline';
 import { useProjectStore } from '../store/projectStore';
 import 'react-grid-layout/css/styles.css';
@@ -18,6 +20,31 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const breakpoints = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
 const cols = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
+
+// Define GridBackground outside the main component so it's not recreated on every render
+const GridBackground = ({ isFixed = false }) => (
+  <div className={`${isFixed ? 'fixed' : 'absolute'} inset-0 bg-[#1E1E1E]`}>
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundImage: `
+          linear-gradient(to right, rgba(255, 255, 255, 0.4) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 1px, transparent 1px)
+        `,
+        backgroundSize: '25px 25px',
+        maskImage: 'radial-gradient(circle at center, black 0%, transparent 80%)',
+      }}
+    />
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundImage: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 1px, transparent 1px)',
+        backgroundSize: '25px 25px',
+        maskImage: 'radial-gradient(circle at center, black 0%, transparent 80%)',
+      }}
+    />
+  </div>
+);
 
 // Transform API project data to match component requirements
 const transformProject = (project) => ({
@@ -36,8 +63,6 @@ const ProjectGrid = ({
   projects = [], 
   searchQuery = '', 
   viewMode = 'grid', 
-  filter = 'all', 
-  sortBy = 'name',
   onUpdateTask
 }) => {
   const navigate = useNavigate();
@@ -50,6 +75,7 @@ const ProjectGrid = ({
   const [showGrid, setShowGrid] = useState(false);
   const [isCompact, setIsCompact] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Transform projects when they change
   const transformedProjects = projects.map(transformProject);
@@ -98,21 +124,7 @@ const ProjectGrid = ({
   // Filter and sort projects
   const filteredProjects = transformedProjects
     .filter(project => {
-      const matchesSearch = project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
-      const matchesFilter = filter === 'all' || project.status === filter;
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'progress':
-          return b.progress - a.progress;
-        case 'deadline':
-          return new Date(a.deadline) - new Date(b.deadline);
-        default:
-          return 0;
-      }
+      return project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
     });
 
   // Handle layout changes
@@ -225,164 +237,170 @@ const ProjectGrid = ({
   }
 
   return (
-    <div className="flex flex-col gap-4 relative">
-      <div className="absolute inset-0 bg-[#1E1E1E]">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, 0.4) 2px, transparent 2px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.4) 2px, transparent 2px)
-          `,
-          backgroundSize: '25px 25px',
-          maskImage: 'radial-gradient(circle at center, black 0%, transparent 95%)'
-        }} />
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.6) 3px, transparent 3px)',
-          backgroundSize: '25px 25px',
-          maskImage: 'radial-gradient(circle at center, black 0%, transparent 95%)'
-        }} />
-      </div>
-      <ResponsiveGridLayout
-        className="layout relative z-10"
-        layouts={layouts}
-        breakpoints={breakpoints}
-        cols={cols}
-        rowHeight={100}
-        margin={[16, 16]}
-        containerPadding={[16, 16]}
-        useCSSTransforms={true}
-        compactType="vertical"
-        preventCollision={false}
-        isDraggable={isInitialized}
-        isResizable={isInitialized}
-        draggableHandle=".drag-handle"
-        resizeHandles={['se']}
-        onLayoutChange={handleLayoutChange}
-        autoSize={true}
-      >
-        {filteredProjects.map(project => {
-          const layout = layouts.lg?.find(l => l.i === project.id) || generateLayout().find(l => l.i === project.id);
-          console.log(`4. Applying layout for project ${project.id}:`, layout);
-          return (
-            <div
-              key={project.id}
-              className={`project-card ${lockedProjects.has(project.id) ? 'locked' : ''}`}
-              data-grid={layout}
-            >
-              <div className="h-full flex flex-col">
-                {/* Header Section */}
-                <div className="drag-handle">
-                  <span className="drag-text">Drag to move</span>
-                  <button
-                    onClick={() => toggleProjectLock(project.id)}
-                    className="lock-button"
-                    aria-label={lockedProjects.has(project.id) ? 'Unlock project' : 'Lock project'}
-                  >
-                    {lockedProjects.has(project.id) ? (
-                      <LockClosedIcon className="w-5 h-5" />
-                    ) : (
-                      <LockOpenIcon className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
+    <div className={`project-grid-container ${isFullScreen ? 'fullscreen' : ''} relative`}>
+      {isFullScreen && <GridBackground isFixed={true} />}
+      <div className={`${isFullScreen ? 'fullscreen-content-wrapper' : ''} relative`}>
+        {!isFullScreen && <GridBackground />}
+        
+        <div className="absolute top-2 right-2 z-10">
+          <button
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            className="p-2 rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white text-gray-400 hover:text-white"
+            aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullScreen ? (
+              <ArrowsPointingInIcon className="h-6 w-6" />
+            ) : (
+              <ArrowsPointingOutIcon className="h-6 w-6" />
+            )}
+          </button>
+        </div>
 
-                {/* Main Content Area */}
-                <div className="project-content">
-                  {/* Title Row */}
-                  <div className="title-row">
-                    <Link to={`/projects/${project.id}`} className="project-title">
-                      {project.name}
-                    </Link>
-                    <div className="status-group">
-                      <span className={getStatusBadgeClass(project.status)}>
-                        {project.status.replace(/-/g, ' ')}
-                      </span>
-                      {project.hasOverdueTasks && (
-                        <span className="overdue-indicator" aria-label="Has overdue tasks">❗</span>
-                      )}
+        <div className="flex flex-col gap-4 relative pt-16">
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={layouts}
+            breakpoints={breakpoints}
+            cols={cols}
+            rowHeight={100}
+            margin={[16, 16]}
+            containerPadding={[16, 16]}
+            useCSSTransforms={true}
+            compactType="vertical"
+            preventCollision={false}
+            isDraggable={isInitialized}
+            isResizable={isInitialized}
+            draggableHandle=".drag-handle"
+            resizeHandles={['se']}
+            onLayoutChange={handleLayoutChange}
+            autoSize={true}
+          >
+            {filteredProjects.map(project => {
+              const layout = layouts.lg?.find(l => l.i === project.id) || generateLayout().find(l => l.i === project.id);
+              console.log(`4. Applying layout for project ${project.id}:`, layout);
+              return (
+                <div
+                  key={project.id}
+                  className={`project-card ${lockedProjects.has(project.id) ? 'locked' : ''}`}
+                  data-grid={layout}
+                >
+                  <div className="h-full flex flex-col">
+                    {/* Header Section */}
+                    <div className="drag-handle">
+                      <span className="drag-text">Drag to move</span>
+                      <button
+                        onClick={() => toggleProjectLock(project.id)}
+                        className="lock-button"
+                        aria-label={lockedProjects.has(project.id) ? 'Unlock project' : 'Lock project'}
+                      >
+                        {lockedProjects.has(project.id) ? (
+                          <LockClosedIcon className="w-5 h-5" />
+                        ) : (
+                          <LockOpenIcon className="w-5 h-5" />
+                        )}
+                      </button>
                     </div>
-                  </div>
 
-                  {/* Info Row */}
-                  <div className="info-row">
-                    <span className="due-date">Due: {formatDate(project.deadline)}</span>
-                    <span className="priority-indicator">{getPriorityIndicator(project.priority)}</span>
-                  </div>
-
-                  {/* Progress Section */}
-                  <div className="progress-section">
-                    <div className="progress-label">
-                      <span>Progress</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Task Preview */}
-                  <div className="task-preview">
-                    <div className="task-list">
-                      {project.tasks.map(task => (
-                        <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.status === 'completed' ? 'done' : ''}`}>
-                          <label className="task-checkbox-container">
-                            <input
-                              type="checkbox"
-                              checked={task.status === 'completed'}
-                              onChange={() => {
-                                if (onUpdateTask) {
-                                  const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-                                  onUpdateTask(project.id, task._id || task.id, { status: newStatus });
-                                }
-                              }}
-                              className="task-checkbox"
-                            />
-                            <span className="checkmark"></span>
-                          </label>
-                          <span className="task-text">{task.title}</span>
+                    {/* Main Content Area */}
+                    <div className="project-content">
+                      {/* Title Row */}
+                      <div className="title-row">
+                        <Link to={`/projects/${project.id}`} className="project-title">
+                          {project.name}
+                        </Link>
+                        <div className="status-group">
+                          <span className={getStatusBadgeClass(project.status)}>
+                            {project.status.replace(/-/g, ' ')}
+                          </span>
+                          {project.hasOverdueTasks && (
+                            <span className="overdue-indicator" aria-label="Has overdue tasks">❗</span>
+                          )}
                         </div>
-                      ))}
-                      {project.tasks.length === 0 && (
-                        <div className="no-tasks">No tasks added yet</div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Footer Section */}
-                  <div className="project-footer">
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleEditProject(project.id)}
-                        className="action-button edit-button"
-                        aria-label="Edit project"
-                        disabled={isDeleting}
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        className="action-button delete-button"
-                        aria-label="Delete project"
-                        disabled={isDeleting}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
+                      {/* Info Row */}
+                      <div className="info-row">
+                        <span className="due-date">Due: {formatDate(project.deadline)}</span>
+                        <span className="priority-indicator">{getPriorityIndicator(project.priority)}</span>
+                      </div>
+
+                      {/* Progress Section */}
+                      <div className="progress-section">
+                        <div className="progress-label">
+                          <span>Progress</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${project.progress}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Task Preview */}
+                      <div className="task-preview">
+                        <div className="task-list">
+                          {project.tasks.map(task => (
+                            <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.status === 'completed' ? 'done' : ''}`}>
+                              <label className="task-checkbox-container">
+                                <input
+                                  type="checkbox"
+                                  checked={task.status === 'completed'}
+                                  onChange={() => {
+                                    if (onUpdateTask) {
+                                      const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
+                                      onUpdateTask(project.id, task._id || task.id, { status: newStatus });
+                                    }
+                                  }}
+                                  className="task-checkbox"
+                                />
+                                <span className="checkmark"></span>
+                              </label>
+                              <span className="task-text">{task.title}</span>
+                            </div>
+                          ))}
+                          {project.tasks.length === 0 && (
+                            <div className="no-tasks">No tasks added yet</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer Section */}
+                      <div className="project-footer">
+                        <div className="action-buttons">
+                          <button
+                            onClick={() => handleEditProject(project.id)}
+                            className="action-button edit-button"
+                            aria-label="Edit project"
+                            disabled={isDeleting}
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="action-button delete-button"
+                            aria-label="Delete project"
+                            disabled={isDeleting}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <Link
+                          to={`/projects/${project.id}`}
+                          className="view-details-link"
+                        >
+                          View Details →
+                        </Link>
+                      </div>
                     </div>
-                    <Link
-                      to={`/projects/${project.id}`}
-                      className="view-details-link"
-                    >
-                      View Details →
-                    </Link>
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </ResponsiveGridLayout>
+              );
+            })}
+          </ResponsiveGridLayout>
+        </div>
+      </div>
     </div>
   );
 };

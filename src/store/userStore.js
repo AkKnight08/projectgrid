@@ -11,6 +11,30 @@ export const useUserStore = create(
       isLoading: false,
       error: null,
       lastFetchTime: null,
+      userCount: 0,
+
+      fetchUserCount: async (isManual = false) => {
+        if (isManual) {
+          console.log('Manual fetch triggered for user count.');
+        }
+        try {
+          console.log('Attempting to fetch user count...');
+          const token = localStorage.getItem('taskgrid_token');
+          if (!token) {
+            console.warn('No token found for user count fetch.');
+            return;
+          }
+          const response = await usersAPI.getCount(token);
+          if (response && response.data) {
+            console.log('Successfully fetched user count:', response.data.count);
+            set({ userCount: response.data.count });
+          } else {
+            console.warn('User count response was empty.');
+          }
+        } catch (error) {
+          console.error('Failed to fetch user count:', error);
+        }
+      },
 
       login: async (email, password) => {
         try {
@@ -143,22 +167,40 @@ export const useUserStore = create(
       },
 
       updateAvatar: async (file) => {
-        try {
-          set({ isLoading: true, error: null });
-          const formData = new FormData();
-          formData.append('avatar', file);
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onloadend = async () => {
+            try {
+              const base64String = reader.result.split(',')[1];
 
-          const data = await authAPI.updateAvatar(formData);
-          
-          set({ user: data.user, isLoading: false });
-          return { success: true, avatar: data.avatar };
-        } catch (error) {
-          set({
-            error: error.response?.data?.message || 'Failed to update avatar',
-            isLoading: false,
-          });
-          return { success: false, error: error.response?.data?.message };
-        }
+              const { data: blob } = await api.post('/upload/avatar', {
+                contents: base64String,
+              });
+
+              set((state) => ({
+                user: { ...state.user, avatar: blob.url },
+              }));
+
+              // Update localStorage
+              const localUser = JSON.parse(localStorage.getItem('taskgrid_user'));
+              if (localUser) {
+                localUser.avatar = blob.url;
+                localStorage.setItem('taskgrid_user', JSON.stringify(localUser));
+              }
+
+              resolve({ success: true, url: blob.url });
+            } catch (error) {
+              console.error('Avatar upload failed:', error);
+              const errorMessage = error.response?.data?.message || 'Upload failed.';
+              resolve({ success: false, error: errorMessage });
+            }
+          };
+          reader.onerror = (error) => {
+            console.error('File reading error:', error);
+            resolve({ success: false, error: 'Failed to read file.' });
+          };
+        });
       },
 
       deleteAccount: async () => {

@@ -6,34 +6,6 @@ const User = require('../models/User');
 const { register, login, getMe, verifyEmail, resendVerificationEmail } = require('../controllers/authController');
 const { body } = require('express-validator');
 const { auth } = require('../middleware/auth');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// --- Multer Setup for Avatar Uploads ---
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '..', '..', 'public', 'uploads', 'avatars');
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `${req.user._id}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
-const upload = multer({ 
-  storage: avatarStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    if (filetypes.test(file.mimetype) && filetypes.test(path.extname(file.originalname).toLowerCase())) {
-      return cb(null, true);
-    }
-    cb(new Error('File upload only supports JPEG, PNG, and GIF'));
-  }
-});
 
 // @route   POST api/auth/register
 // @desc    Register user
@@ -225,28 +197,6 @@ router.delete('/account', auth, async (req, res) => {
     console.error('Account deletion error:', error);
     res.status(500).json({ message: 'Error deleting account' });
   }
-});
-
-// @route   PATCH /api/auth/avatar
-// @desc    Update user avatar
-// @access  Private
-router.patch('/avatar', auth, upload.single('avatar'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
-
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found.' });
-
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    user.avatar = avatarUrl;
-    await user.save();
-
-    res.json({ avatar: avatarUrl, user });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating avatar.', error: error.message });
-  }
-}, (error, req, res, next) => {
-  res.status(400).json({ message: error.message });
 });
 
 module.exports = router; 

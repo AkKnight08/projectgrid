@@ -8,7 +8,9 @@ import {
   Squares2X2Icon,
   ListBulletIcon,
   ChevronDownIcon,
-  XMarkIcon
+  XMarkIcon,
+  UserGroupIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useProjectStore } from '../store/projectStore';
 import { useUserStore } from '../store/userStore';
@@ -34,7 +36,7 @@ const getAvatarUrl = (avatarPath) => {
 const Navbar = () => {
   const navigate = useNavigate();
   const { searchProjects, searchResults, isSearching } = useProjectStore();
-  const { user } = useUserStore();
+  const { user, userCount, fetchUserCount } = useUserStore();
   const { theme, handleThemeChange } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -48,6 +50,12 @@ const Navbar = () => {
   ]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    if (user) {
+      fetchUserCount();
+    }
+  }, [user, fetchUserCount]);
 
   // Get colors based on current theme
   const colors = theme === 'dark' ? DARK_MODE_COLORS : {
@@ -136,6 +144,19 @@ const Navbar = () => {
       </div>
 
       <div className="navbar-right">
+        {user && (
+          <div className="user-count-display">
+            <UserGroupIcon className="w-5 h-5" />
+            <span>{userCount}</span>
+            <button 
+              onClick={() => fetchUserCount(true)}
+              className="refresh-button"
+              title="Refresh user count"
+            >
+              <ArrowPathIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="search-container" ref={searchRef}>
           <button 
             className={`search-icon-btn text-[${colors.ICON_DEFAULT}] hover:text-[${colors.ICON_HOVER}]`}

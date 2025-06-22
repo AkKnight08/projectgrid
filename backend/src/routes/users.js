@@ -4,6 +4,16 @@ const { auth, adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get user count (all authenticated users)
+router.get('/count', auth, async (req, res) => {
+  try {
+    const userCount = await User.countDocuments({ isEmailVerified: true });
+    res.json({ count: userCount });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user count' });
+  }
+});
+
 // Get all users (admin only)
 router.get('/', adminAuth, async (req, res) => {
   try {

@@ -4,7 +4,7 @@ import authAPI from './auth';
 const TOKEN_KEY = 'taskgrid_token';
 
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL || ''}/api`,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -121,11 +121,12 @@ export const tasksAPI = {
 
 // Users API
 export const usersAPI = {
-  getAll: () => api.get('/users'),
-  getById: (id) => api.get(`/users/${id}`),
-  update: (id, data) => api.patch(`/users/${id}`, data),
-  delete: (id) => api.delete(`/users/${id}`),
-  updateRole: (id, data) => api.patch(`/users/${id}/role`, data),
+  getAll: (token) => api.get('/users', { headers: { Authorization: `Bearer ${token}` } }),
+  getCount: (token) => api.get('/users/count', { headers: { Authorization: `Bearer ${token}` } }),
+  getById: (id, token) => api.get(`/users/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  update: (id, data, token) => api.patch(`/users/${id}`, data, { headers: { Authorization: `Bearer ${token}` } }),
+  delete: (id, token) => api.delete(`/users/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  updateRole: (id, data, token) => api.patch(`/users/${id}/role`, data, { headers: { Authorization: `Bearer ${token}` } }),
 };
 
 export { authAPI };
