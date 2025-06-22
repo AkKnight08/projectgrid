@@ -345,7 +345,7 @@ const ProjectGrid = ({
                         )}
                       </div>
                     </div>
-                    <div className="action-buttons opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2 absolute bottom-3 right-3 z-10">
+                    <div className="action-buttons opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 flex gap-2 absolute bottom-3 right-3 z-10">
                       <button className="action-button" onClick={() => handleEditProject(project.id)} title="Edit">
                         <PencilIcon className="w-5 h-5" />
                       </button>
