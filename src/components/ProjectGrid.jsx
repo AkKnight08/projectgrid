@@ -95,7 +95,7 @@ const ProjectGrid = ({
         minW: 2,
         minH: 2,
         maxW: 6,
-        maxH: 4,
+        maxH: 8,
       };
     });
   };
@@ -135,9 +135,8 @@ const ProjectGrid = ({
     if (!isInitialized) return;
 
     try {
-      console.log('3. Layout changed, saving to localStorage and state:', layouts);
+      console.log('3. Layout changed, saving to localStorage:', layouts);
       localStorage.setItem('taskgrid_layouts', JSON.stringify(layouts));
-      setLayouts(layouts);
     } catch (error) {
       console.error('Error updating layout:', error);
     }
