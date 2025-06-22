@@ -7,8 +7,11 @@ const crypto = require('crypto');
 
 // Register new user
 const register = async (req, res) => {
+    console.log('--- Register endpoint hit ---');
+    console.log('Request body:', req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.log('Validation errors:', errors.array());
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -34,10 +37,14 @@ const register = async (req, res) => {
     };
     
     try {
-        let user = await User.findOne({ email });
+        console.log(`Checking for existing user with email: ${email}`);
+        let user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
         if (user) {
+            console.log('User found, sending 400 response.');
             return res.status(400).json({ message: 'User already exists' });
         }
+        
+        console.log('User not found, proceeding with registration.');
 
         // Auto-generate display name from the full name
         const displayName = generateDisplayName(name);
@@ -51,9 +58,11 @@ const register = async (req, res) => {
         });
 
         await user.save();
+        console.log('User saved successfully.');
 
         const verificationToken = user.getEmailVerificationToken();
         await user.save({ validateBeforeSave: false });
+        console.log('Email verification token generated and saved.');
         
         const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
         const message = `
@@ -76,6 +85,7 @@ const register = async (req, res) => {
 
         try {
             await sendEmail({ to: user.email, subject: 'Email Verification', html: message });
+            console.log('Verification email sent successfully.');
             res.status(201).json({ success: true, message: 'Verification email sent.' });
 
         } catch (err) {

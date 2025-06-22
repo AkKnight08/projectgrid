@@ -17,13 +17,16 @@ async function checkUser() {
         });
         console.log('Connected to MongoDB');
 
-        const user = await User.findOne({ email: emailToCheck });
+        const user = await User.findOne({ email: { $regex: new RegExp(`^${emailToCheck}$`, 'i') } });
 
         if (user) {
             console.log(`✅ User found:`, user);
         } else {
             console.log(`❌ User with email ${emailToCheck} not found.`);
         }
+
+        const indexes = await User.collection.getIndexes({ full: true });
+        console.log('Indexes for User collection:', indexes);
 
     } catch (error) {
         console.error('❌ Error:', error);
