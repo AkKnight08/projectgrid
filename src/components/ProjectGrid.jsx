@@ -10,6 +10,8 @@ import {
   LockOpenIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
+  Bars2Icon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 import { useProjectStore } from '../store/projectStore';
 import 'react-grid-layout/css/styles.css';
@@ -76,6 +78,7 @@ const ProjectGrid = ({
   const [isCompact, setIsCompact] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [cardStyle, setCardStyle] = useState('default'); // 'default' or 'hud'
 
   // Transform projects when they change
   const transformedProjects = projects.map(transformProject);
@@ -242,7 +245,7 @@ const ProjectGrid = ({
       <div className={`${isFullScreen ? 'fullscreen-content-wrapper' : ''} relative`}>
         {!isFullScreen && <GridBackground />}
         
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
           <button
             onClick={() => setIsFullScreen(!isFullScreen)}
             className="p-2 rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white text-gray-400 hover:text-white"
@@ -254,145 +257,70 @@ const ProjectGrid = ({
               <ArrowsPointingOutIcon className="h-6 w-6" />
             )}
           </button>
+          <button
+            onClick={() => setCardStyle(cardStyle === 'default' ? 'hud' : 'default')}
+            className={`p-2 rounded-full border border-gray-700 bg-gray-800 text-xs text-gray-300 hover:bg-blue-900 hover:text-blue-300 transition-colors duration-150 flex items-center justify-center`}
+            aria-label="Toggle card style"
+            title="Toggle card style"
+          >
+            <AdjustmentsHorizontalIcon className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="flex flex-col gap-4 relative pt-16">
           <ResponsiveGridLayout
             className="layout"
             layouts={layouts}
+            onLayoutChange={handleLayoutChange}
+            draggableHandle=".drag-handle"
             breakpoints={breakpoints}
             cols={cols}
             rowHeight={100}
             margin={[16, 16]}
             containerPadding={[16, 16]}
             useCSSTransforms={true}
-            compactType="vertical"
             preventCollision={false}
             isDraggable={isInitialized}
             isResizable={isInitialized}
-            draggableHandle=".drag-handle"
             resizeHandles={['se']}
-            onLayoutChange={handleLayoutChange}
-            autoSize={true}
+            {...isCompact && { compactType: 'vertical' }}
           >
             {filteredProjects.map(project => {
-              const layout = layouts.lg?.find(l => l.i === project.id) || generateLayout().find(l => l.i === project.id);
-              console.log(`4. Applying layout for project ${project.id}:`, layout);
+              const layout = layouts.lg?.find(l => l.i === project.id) || { x: 0, y: 0, w: 3, h: 3 };
               return (
                 <div
                   key={project.id}
-                  className={`project-card ${lockedProjects.has(project.id) ? 'locked' : ''}`}
+                  className={`${cardStyle === 'hud' ? 'project-card-hud' : 'project-card'} group`}
                   data-grid={layout}
                 >
-                  <div className="h-full flex flex-col">
-                    {/* Header Section */}
-                    <div className="drag-handle">
-                      <span className="drag-text">Drag to move</span>
-                      <button
-                        onClick={() => toggleProjectLock(project.id)}
-                        className="lock-button"
-                        aria-label={lockedProjects.has(project.id) ? 'Unlock project' : 'Lock project'}
-                      >
-                        {lockedProjects.has(project.id) ? (
-                          <LockClosedIcon className="w-5 h-5" />
-                        ) : (
-                          <LockOpenIcon className="w-5 h-5" />
-                        )}
-                      </button>
+                  <div className="drag-handle opacity-0 group-hover:opacity-100"></div>
+                  <div className="card-tilt-inner">
+                    <div className="card-background-pattern"></div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Link to={`/projects/${project.id}`} className="project-title truncate" style={{maxWidth: '70%'}}>
+                        {project.name}
+                      </Link>
+                      <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>{project.status}</span>
                     </div>
-
-                    {/* Main Content Area */}
-                    <div className="project-content">
-                      {/* Title Row */}
-                      <div className="title-row">
-                        <Link to={`/projects/${project.id}`} className="project-title">
-                          {project.name}
-                        </Link>
-                        <div className="status-group">
-                          <span className={getStatusBadgeClass(project.status)}>
-                            {project.status.replace(/-/g, ' ')}
-                          </span>
-                          {project.hasOverdueTasks && (
-                            <span className="overdue-indicator" aria-label="Has overdue tasks">❗</span>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mb-1 ml-auto w-fit">
+                      <span className="align-middle">{getPriorityIndicator(project.priority)}</span>
+                    </div>
+                    <div className="progress-section mb-2">
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${project.progress}%` }}></div>
                       </div>
-
-                      {/* Info Row */}
-                      <div className="info-row">
-                        <span className="due-date">Due: {formatDate(project.deadline)}</span>
-                        <span className="priority-indicator">{getPriorityIndicator(project.priority)}</span>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>{project.progress}% Complete</span>
+                        {project.hasOverdueTasks && <span className="overdue-indicator">Overdue</span>}
                       </div>
-
-                      {/* Progress Section */}
-                      <div className="progress-section">
-                        <div className="progress-label">
-                          <span>Progress</span>
-                          <span>{project.progress}%</span>
-                        </div>
-                        <div className="progress-bar">
-                          <div
-                            className="progress-fill"
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Task Preview */}
-                      <div className="task-preview">
-                        <div className="task-list">
-                          {project.tasks.map(task => (
-                            <div key={`${project.id}-${task._id || task.id}`} className={`task-item ${task.status === 'completed' ? 'done' : ''}`}>
-                              <label className="task-checkbox-container">
-                                <input
-                                  type="checkbox"
-                                  checked={task.status === 'completed'}
-                                  onChange={() => {
-                                    if (onUpdateTask) {
-                                      const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-                                      onUpdateTask(project.id, task._id || task.id, { status: newStatus });
-                                    }
-                                  }}
-                                  className="task-checkbox"
-                                />
-                                <span className="checkmark"></span>
-                              </label>
-                              <span className="task-text">{task.title}</span>
-                            </div>
-                          ))}
-                          {project.tasks.length === 0 && (
-                            <div className="no-tasks">No tasks added yet</div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Footer Section */}
-                      <div className="project-footer">
-                        <div className="action-buttons">
-                          <button
-                            onClick={() => handleEditProject(project.id)}
-                            className="action-button edit-button"
-                            aria-label="Edit project"
-                            disabled={isDeleting}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProject(project.id)}
-                            className="action-button delete-button"
-                            aria-label="Delete project"
-                            disabled={isDeleting}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <Link
-                          to={`/projects/${project.id}`}
-                          className="view-details-link"
-                        >
-                          View Details →
-                        </Link>
-                      </div>
+                    </div>
+                    <div className="action-buttons opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2 absolute bottom-3 right-3 z-10">
+                      <button className="action-button" onClick={() => handleEditProject(project.id)} title="Edit">
+                        <PencilIcon className="w-5 h-5" />
+                      </button>
+                      <button className="action-button delete-button" onClick={() => handleDeleteProject(project.id)} title="Delete">
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 </div>
