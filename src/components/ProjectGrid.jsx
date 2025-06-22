@@ -314,6 +314,37 @@ const ProjectGrid = ({
                         {project.hasOverdueTasks && <span className="overdue-indicator">Overdue</span>}
                       </div>
                     </div>
+                    <div className="task-list-preview mt-2">
+                      <div className="task-list-scroll">
+                        {project.tasks && project.tasks.length > 0 ? (
+                          <>
+                            {project.tasks.slice(0, 5).map((task, idx) => (
+                              <div key={task._id || task.id || idx} className="flex items-center gap-2 text-gray-300 mb-1">
+                                <label className="custom-checkbox">
+                                  <input
+                                    type="checkbox"
+                                    checked={task.status === 'completed'}
+                                    onChange={() => {
+                                      if (onUpdateTask) {
+                                        const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
+                                        onUpdateTask(project.id, task._id || task.id, { status: newStatus });
+                                      }
+                                    }}
+                                  />
+                                  <span className={`circle${task.status === 'completed' ? ' checked' : ''}`}></span>
+                                </label>
+                                <span className={task.status === 'completed' ? 'line-through text-gray-500' : ''}>{task.title}</span>
+                              </div>
+                            ))}
+                            {project.tasks.length > 5 && (
+                              <div className="text-xs text-gray-500 ml-5">+{project.tasks.length - 5} more</div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-xs text-gray-500">No tasks</div>
+                        )}
+                      </div>
+                    </div>
                     <div className="action-buttons opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2 absolute bottom-3 right-3 z-10">
                       <button className="action-button" onClick={() => handleEditProject(project.id)} title="Edit">
                         <PencilIcon className="w-5 h-5" />
