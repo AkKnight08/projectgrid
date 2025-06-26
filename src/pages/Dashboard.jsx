@@ -11,11 +11,14 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const { projects, fetchProjects, isLoading, metrics } = useProjectStore();
-  const { updateTask } = useTaskStore();
+  const { updateTask, tasks = [], fetchTasks, isLoading: tasksLoading } = useTaskStore();
   const { theme } = useTheme();
 
   useEffect(() => {
     fetchProjects();
+    if (tasks.length === 0) {
+      fetchTasks();
+    }
   }, [fetchProjects]);
 
   const handleUpdateTask = async (projectId, taskId, updates) => {
@@ -76,6 +79,9 @@ export default function Dashboard() {
     return `${sign}${Math.round(value)}%`;
   };
 
+  // Calculate total tasks left (not completed) as the sum of all non-completed tasks in all projects
+  const totalTasksLeft = projects.reduce((sum, project) => sum + (project.tasks ? project.tasks.filter(task => task.status !== 'completed').length : 0), 0);
+
   return (
     <div className="bg-[#1E1E1E] p-6 pt-16 pb-12">
       {/* Page Title */}
@@ -92,9 +98,9 @@ export default function Dashboard() {
           {/* Main Content */}
           <div className={`flex-1 bg-[#1E1E1E] rounded-lg p-8`}>
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div className="flex flex-row gap-5 mb-8 w-full">
               {/* Total Projects Card */}
-              <div className={`bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
+              <div className={`flex-1 bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}]`}>Total Projects</h3>
                   <span className={`p-2 rounded-lg bg-[${colors.ACCENT_PURPLE}] bg-opacity-10`}>
@@ -112,8 +118,24 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-500 mt-1">vs last month</p>
               </div>
 
+              {/* Total Tasks Card */}
+              <div className={`flex-1 bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}]`}>Total Tasks Left</h3>
+                  <span className={`p-2 rounded-lg bg-[${colors.ACCENT_BLUE} || '#3B82F6'] bg-opacity-10`}>
+                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <p className={`text-2xl font-bold text-[${colors.TEXT_PRIMARY}]`}>{isLoading ? '...' : totalTasksLeft}</p>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Tasks left (not completed)</p>
+              </div>
+
               {/* Tasks Due Today Card */}
-              <div className={`bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
+              <div className={`flex-1 bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}]`}>Tasks Due Today</h3>
                   <span className={`p-2 rounded-lg bg-[${colors.ACCENT_ORANGE}] bg-opacity-10`}>
@@ -129,7 +151,7 @@ export default function Dashboard() {
               </div>
 
               {/* Overdue Tasks Card */}
-              <div className={`bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
+              <div className={`flex-1 bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}]`}>Overdue Tasks</h3>
                   <span className={`p-2 rounded-lg bg-[${colors.ACCENT_RED}] bg-opacity-10`}>
@@ -148,7 +170,7 @@ export default function Dashboard() {
               </div>
 
               {/* Overall Progress Card */}
-              <div className={`bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
+              <div className={`flex-1 bg-[${colors.CARD_INNER_BG}] rounded-xl p-6 border border-[${colors.BORDER}] hover:shadow-lg transition-all duration-300`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-sm font-medium text-[${colors.TEXT_SECONDARY}]`}>Overall Progress</h3>
                   <span className={`p-2 rounded-lg bg-[${colors.ACCENT_TEAL}] bg-opacity-10`}>
