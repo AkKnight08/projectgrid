@@ -164,7 +164,7 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors, allTasksStyle }) 
             <div className={`flex ${allTasksStyle ? 'flex-col h-full justify-between' : 'items-start'} justify-between`} style={allTasksStyle ? { minHeight: 60 } : {}}>
               <div className="flex-1 h-full">
                 {allTasksStyle ? (
-                  <div className="task-item" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '0.375rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', padding: '0.5rem' }}>
+                  <div className="task-item all-tasks-transparent" style={{ borderRadius: '0.375rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', marginLeft: '-0.25rem', padding: 0 }}>
                     <TaskCircle
                       completed={task.status === 'completed'}
                       onClick={() => {
