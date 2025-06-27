@@ -464,7 +464,11 @@ const ProjectGrid = ({
                                         if (diff === 0) {
                                           return <span className="ml-1 text-red-400">(Today)</span>;
                                         } else if (diff > 0) {
-                                          return <span className="ml-1 text-red-400">({diff}d left)</span>;
+                                          if (diff > 3) {
+                                            return <span className="ml-1 text-green-400">({diff}d left)</span>;
+                                          } else {
+                                            return <span className="ml-1 text-red-400">({diff}d left)</span>;
+                                          }
                                         } else if (diff < 0) {
                                           return <span className="ml-1 text-red-400">({Math.abs(diff)}d ago)</span>;
                                         }
