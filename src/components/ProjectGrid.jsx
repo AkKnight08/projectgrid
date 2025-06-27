@@ -276,8 +276,21 @@ const ProjectGrid = ({
     }
   };
 
-  // Aggregate all tasks from all projects
-  const allTasks = transformedProjects.flatMap(project => (project.tasks || []).map(task => ({ ...task, projectName: project.name })));
+  // Aggregate all tasks from all projects, sorted by incomplete first (by due date), then completed (by due date)
+  const allTasks = transformedProjects
+    .flatMap(project => (project.tasks || []).map(task => ({ ...task, projectName: project.name })))
+    .sort((a, b) => {
+      // Completed tasks always at the bottom
+      const aCompleted = a.status === 'completed';
+      const bCompleted = b.status === 'completed';
+      if (aCompleted && !bCompleted) return 1;
+      if (!aCompleted && bCompleted) return -1;
+      // Within each group, sort by due date (no due date last)
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
 
   if (filteredProjects.length === 0) {
     return (
@@ -352,10 +365,27 @@ const ProjectGrid = ({
                     All Tasks
                   </span>
                 </div>
+                {/* Progress bar and task count for All Tasks */}
+                <div className="progress-section mb-2">
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${allTasks.length === 0 ? 0 : Math.round((allTasks.filter(t => t.status === 'completed').length / allTasks.length) * 100)}%` }}></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{allTasks.length === 0 ? 0 : Math.round((allTasks.filter(t => t.status === 'completed').length / allTasks.length) * 100)}% Complete</span>
+                    <span>{`${allTasks.filter(t => t.status === 'completed').length} of ${allTasks.length} completed`}</span>
+                  </div>
+                </div>
                 <div className="task-list-preview mt-2" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   <div className="task-list-scroll" style={{ maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1 }}>
                     {allTasks.length > 0 ? (
-                      <TaskList tasks={allTasks} onUpdateTask={onUpdateTask} onDeleteTask={() => {}} />
+                      <TaskList tasks={allTasks} onUpdateTask={onUpdateTask} onDeleteTask={() => {}} colors={{
+                        PANEL_BG: '#0B0C1D',
+                        TEXT_PRIMARY: '#E0E0E0',
+                        TEXT_SECONDARY: '#A0A0B5',
+                        BORDER: '#2E2E2E',
+                        ACCENT_PURPLE: '#7C3AED',
+                        TEXT_DISABLED: '#999999',
+                      }} />
                     ) : (
                       <div className="text-xs text-gray-500">No tasks</div>
                     )}
@@ -397,8 +427,10 @@ const ProjectGrid = ({
                       </div>
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
                         <span>{project.progress}% Complete</span>
-                        {project.hasOverdueTasks && <span className="overdue-indicator">Overdue</span>}
+                        {/* Number of tasks indicator, same format as All Tasks card */}
+                        <span>{`${project.tasks.filter(t => t.status === 'completed').length} of ${project.tasks.length} completed`}</span>
                       </div>
+                      {project.hasOverdueTasks && <span className="overdue-indicator">Overdue</span>}
                     </div>
                     <div className="task-list-preview mt-2" style={{flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
                       <div className="task-list-scroll" style={{maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1}}>

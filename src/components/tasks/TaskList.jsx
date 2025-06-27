@@ -10,10 +10,10 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors }) => {
   const [editedStatus, setEditedStatus] = useState('')
 
   const defaultColors = {
-    PANEL_BG: '#0B0C1D',
+    PANEL_BG: 'rgba(11, 12, 29, 1)',
     TEXT_PRIMARY: '#E0E0E0',
     TEXT_SECONDARY: '#A0A0B5',
-    BORDER: '#2E2E2E',
+    BORDER: '1.5px solid rgba(80,100,180,0.10)',
     ACCENT_PURPLE: '#7C3AED',
     TEXT_DISABLED: '#999999',
   };
