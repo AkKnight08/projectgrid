@@ -53,8 +53,10 @@ export const useTaskStore = create((set, get) => ({
 
   updateTask: async (id, taskData) => {
     try {
+      console.log('[updateTask] called with:', { id, taskData });
       set({ isLoading: true, error: null })
       const task = await tasksAPI.update(id, taskData)
+      console.log('[updateTask] tasksAPI.update result:', task);
       set(state => ({
         tasks: state.tasks.map(t => 
           t._id === id ? task : t
@@ -69,6 +71,7 @@ export const useTaskStore = create((set, get) => ({
       
       return task
     } catch (error) {
+      console.error('[updateTask] error:', error, 'id:', id, 'taskData:', taskData);
       set({ 
         error: error.response?.data?.message || 'Failed to update task',
         isLoading: false 

@@ -355,7 +355,7 @@ const ProjectGrid = ({
               key="all-tasks"
               className={`${cardStyle === 'hud' ? 'project-card-hud' : 'project-card'} group`}
               data-grid={layouts[Object.keys(layouts)[0]]?.find(l => l.i === 'all-tasks') || { x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2, maxW: 12, maxH: 12, i: 'all-tasks' }}
-              style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: '#000', color: '#fff' }}
             >
               <div className="drag-handle opacity-0 group-hover:opacity-100"></div>
               <div className="card-tilt-inner" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -378,14 +378,7 @@ const ProjectGrid = ({
                 <div className="task-list-preview mt-2" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   <div className="task-list-scroll" style={{ maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1 }}>
                     {allTasks.length > 0 ? (
-                      <TaskList tasks={allTasks} onUpdateTask={onUpdateTask} onDeleteTask={() => {}} colors={{
-                        PANEL_BG: '#0B0C1D',
-                        TEXT_PRIMARY: '#E0E0E0',
-                        TEXT_SECONDARY: '#A0A0B5',
-                        BORDER: '#2E2E2E',
-                        ACCENT_PURPLE: '#7C3AED',
-                        TEXT_DISABLED: '#999999',
-                      }} />
+                      <TaskList tasks={allTasks} onUpdateTask={onUpdateTask} onDeleteTask={() => {}} allTasksStyle={true} />
                     ) : (
                       <div className="text-xs text-gray-500">No tasks</div>
                     )}

@@ -86,8 +86,10 @@ const ProjectCard = ({ project }) => {
             {project.endDate && !['completed','archived'].includes(project.status) && (
               daysLeft < 0 ? (
                 <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Overdue</span>
-              ) : (
+              ) : daysLeft > 3 ? (
                 <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">{daysLeft} days left</span>
+              ) : (
+                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{daysLeft} days left</span>
               )
             )}
           </div>
