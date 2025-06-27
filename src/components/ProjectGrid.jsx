@@ -78,7 +78,12 @@ const ProjectGrid = ({
   const [isCompact, setIsCompact] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [cardStyle, setCardStyle] = useState('default'); // 'default' or 'hud'
+  const [cardStyle, setCardStyle] = useState(() => localStorage.getItem('project_card_style') || 'default'); // 'default' or 'hud'
+
+  // Persist cardStyle to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('project_card_style', cardStyle);
+  }, [cardStyle]);
 
   // Transform projects when they change
   const transformedProjects = projects.map(transformProject);
