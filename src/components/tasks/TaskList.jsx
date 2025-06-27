@@ -63,9 +63,40 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors, allTasksStyle }) 
 
   const TaskInfo = ({ title, description, completed }) => (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-      <span className={completed ? 'line-through text-gray-500' : ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', color: '#fff', fontWeight: 500 }}>{title}</span>
+      <span
+        className={completed ? 'line-through text-gray-500' : ''}
+        style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          color: '#fff',
+          fontWeight: 500,
+          whiteSpace: 'normal',
+          maxHeight: '2.8em',
+        }}
+      >
+        {title}
+      </span>
       {description && (
-        <span className="block text-xs" style={{ color: '#bdbdbd', whiteSpace: 'normal', wordBreak: 'break-word', marginTop: 2 }}>{description}</span>
+        <span
+          className="block text-xs"
+          style={{
+            color: '#bdbdbd',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            marginTop: 2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            maxHeight: '2.8em',
+          }}
+        >
+          {description}
+        </span>
       )}
     </div>
   );
