@@ -355,7 +355,7 @@ const ProjectGrid = ({
               key="all-tasks"
               className={`${cardStyle === 'hud' ? 'project-card-hud' : 'project-card'} group`}
               data-grid={layouts[Object.keys(layouts)[0]]?.find(l => l.i === 'all-tasks') || { x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2, maxW: 12, maxH: 12, i: 'all-tasks' }}
-              style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: '#000', color: '#fff' }}
+              style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               <div className="drag-handle opacity-0 group-hover:opacity-100"></div>
               <div className="card-tilt-inner" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

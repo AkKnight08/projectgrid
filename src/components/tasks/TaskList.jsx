@@ -101,11 +101,11 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors, allTasksStyle }) 
   };
 
   return (
-    <div className="space-y-4">
+    <div>
       {tasks.map((task) => (
         <div
           key={task._id}
-          style={{ backgroundColor: allTasksStyle ? '#000' : colors.PANEL_BG, color: allTasksStyle ? '#fff' : undefined }}
+          style={{ backgroundColor: allTasksStyle ? 'transparent' : colors.PANEL_BG, color: allTasksStyle ? '#fff' : undefined, marginBottom: 0 }}
           className="shadow rounded-lg p-4"
         >
           {editingTaskId === task._id ? (
@@ -164,7 +164,7 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors, allTasksStyle }) 
             <div className={`flex ${allTasksStyle ? 'flex-col h-full justify-between' : 'items-start'} justify-between`} style={allTasksStyle ? { minHeight: 60 } : {}}>
               <div className="flex-1 h-full">
                 {allTasksStyle ? (
-                  <div className="task-item all-tasks-transparent" style={{ borderRadius: '0.375rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', marginLeft: '-0.25rem', padding: 0 }}>
+                  <div className={`task-item${allTasksStyle ? ' all-tasks-transparent' : ''}`} style={{ background: allTasksStyle ? 'transparent' : undefined, borderRadius: '0.375rem', marginBottom: allTasksStyle ? '0.25rem' : undefined, display: 'flex', alignItems: 'center', marginLeft: allTasksStyle ? '-0.25rem' : undefined, padding: 0 }}>
                     <TaskCircle
                       completed={task.status === 'completed'}
                       onClick={() => {
@@ -174,8 +174,12 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors, allTasksStyle }) 
                         }
                       }}
                     />
-                    <TaskInfo title={task.title} description={task.description} completed={task.status === 'completed'} />
-                    <TaskDate dueDate={task.dueDate} />
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <TaskInfo title={task.title} description={task.description} completed={task.status === 'completed'} />
+                    </div>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                      <TaskDate dueDate={task.dueDate} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 w-full">
