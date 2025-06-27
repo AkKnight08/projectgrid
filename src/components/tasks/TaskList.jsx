@@ -9,6 +9,16 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, colors }) => {
   const [editedDueDate, setEditedDueDate] = useState('')
   const [editedStatus, setEditedStatus] = useState('')
 
+  const defaultColors = {
+    PANEL_BG: '#0B0C1D',
+    TEXT_PRIMARY: '#E0E0E0',
+    TEXT_SECONDARY: '#A0A0B5',
+    BORDER: '#2E2E2E',
+    ACCENT_PURPLE: '#7C3AED',
+    TEXT_DISABLED: '#999999',
+  };
+  colors = colors || defaultColors;
+
   const handleEdit = (task) => {
     setEditingTaskId(task._id)
     setEditedTitle(task.title)

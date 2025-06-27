@@ -17,6 +17,7 @@ import { useProjectStore } from '../store/projectStore';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import './ProjectGrid.css';
+import TaskList from './tasks/TaskList';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -105,23 +106,66 @@ const ProjectGrid = ({
     });
   };
 
+  // Helper to generate default layouts for all breakpoints
+  const generateDefaultLayouts = () => {
+    const baseLayout = generateLayout();
+    const allTasksCard = { x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2, maxW: 12, maxH: 12, i: 'all-tasks' };
+    const layoutWithAllTasks = [allTasksCard, ...baseLayout];
+    const layouts = {};
+    Object.keys(breakpoints).forEach(bp => {
+      layouts[bp] = layoutWithAllTasks.map(item => ({ ...item }));
+    });
+    return layouts;
+  };
+
+  // Helper to merge new projects and all-tasks into existing layouts
+  const mergeLayoutsWithProjects = (layouts, projects) => {
+    const updatedLayouts = { ...layouts };
+    Object.keys(breakpoints).forEach(bp => {
+      if (!Array.isArray(updatedLayouts[bp])) updatedLayouts[bp] = [];
+      // Ensure all-tasks card exists
+      if (!updatedLayouts[bp].some(item => item.i === 'all-tasks')) {
+        console.log(`[mergeLayoutsWithProjects] Adding all-tasks to ${bp}`);
+        updatedLayouts[bp].push({ x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2, maxW: 12, maxH: 12, i: 'all-tasks' });
+      }
+      // Ensure all project cards exist
+      projects.forEach((project, idx) => {
+        if (!updatedLayouts[bp].some(item => item.i === project._id)) {
+          console.log(`[mergeLayoutsWithProjects] Adding project ${project._id} to ${bp}`);
+          updatedLayouts[bp].push({
+            x: ((idx + 1) * 2) % 12,
+            y: Math.floor(idx / 6) * 2 + 1,
+            w: 3,
+            h: 3,
+            minW: 2,
+            minH: 2,
+            maxW: 6,
+            maxH: 8,
+            i: project._id
+          });
+        }
+      });
+      // Log the layout for this breakpoint
+      console.log(`[mergeLayoutsWithProjects] Layout for ${bp}:`, updatedLayouts[bp]);
+    });
+    return updatedLayouts;
+  };
+
   // Initialize layouts from localStorage
   useEffect(() => {
     try {
       const savedLayouts = localStorage.getItem('taskgrid_layouts');
-      console.log('1. Layout from localStorage on mount:', savedLayouts);
+      console.log('[useEffect] Loaded from localStorage:', savedLayouts);
       if (savedLayouts) {
         const parsedLayouts = JSON.parse(savedLayouts);
-        const validatedLayouts = {};
-        Object.keys(breakpoints).forEach(bp => {
-          validatedLayouts[bp] = Array.isArray(parsedLayouts[bp]) ? parsedLayouts[bp] : [];
-        });
-        setLayouts(validatedLayouts);
+        const merged = mergeLayoutsWithProjects(parsedLayouts, projects);
+        setLayouts(merged);
+        console.log('[useEffect] Set merged layouts:', merged);
       } else {
-        const newLayouts = { lg: generateLayout() };
-        console.log('2. No saved layout, generated default:', newLayouts);
+        const newLayouts = generateDefaultLayouts();
         setLayouts(newLayouts);
         localStorage.setItem('taskgrid_layouts', JSON.stringify(newLayouts));
+        console.log('[useEffect] Set new default layouts:', newLayouts);
       }
     } catch (error) {
       console.error('Error loading layouts:', error);
@@ -138,10 +182,10 @@ const ProjectGrid = ({
   // Handle layout changes
   const handleLayoutChange = (layout, layouts) => {
     if (!isInitialized) return;
-
     try {
-      console.log('3. Layout changed, saving to localStorage:', layouts);
+      setLayouts(layouts); // Update state so UI reflects new layout
       localStorage.setItem('taskgrid_layouts', JSON.stringify(layouts));
+      console.log('[handleLayoutChange] Saving layouts:', layouts);
     } catch (error) {
       console.error('Error updating layout:', error);
     }
@@ -232,6 +276,9 @@ const ProjectGrid = ({
     }
   };
 
+  // Aggregate all tasks from all projects
+  const allTasks = transformedProjects.flatMap(project => (project.tasks || []).map(task => ({ ...task, projectName: project.name })));
+
   if (filteredProjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -272,6 +319,7 @@ const ProjectGrid = ({
         </div>
 
         <div className="flex flex-col gap-4 relative pt-16">
+          {console.log('[render] ResponsiveGridLayout layouts prop:', layouts)}
           <ResponsiveGridLayout
             className="layout"
             layouts={layouts}
@@ -289,6 +337,32 @@ const ProjectGrid = ({
             resizeHandles={['se']}
             {...isCompact && { compactType: 'vertical' }}
           >
+            {/* All Tasks Card */}
+            <div
+              key="all-tasks"
+              className={`${cardStyle === 'hud' ? 'project-card-hud' : 'project-card'} group`}
+              data-grid={layouts[Object.keys(layouts)[0]]?.find(l => l.i === 'all-tasks') || { x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 2, maxW: 12, maxH: 12, i: 'all-tasks' }}
+              style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+            >
+              <div className="drag-handle opacity-0 group-hover:opacity-100"></div>
+              <div className="card-tilt-inner" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div className="card-background-pattern"></div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="project-title truncate font-bold" style={{ maxWidth: '70%' }}>
+                    All Tasks
+                  </span>
+                </div>
+                <div className="task-list-preview mt-2" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                  <div className="task-list-scroll" style={{ maxHeight: '100%', overflowY: 'auto', minHeight: 0, flex: 1 }}>
+                    {allTasks.length > 0 ? (
+                      <TaskList tasks={allTasks} onUpdateTask={onUpdateTask} onDeleteTask={() => {}} />
+                    ) : (
+                      <div className="text-xs text-gray-500">No tasks</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
             {filteredProjects.map(project => {
               const layout = layouts.lg?.find(l => l.i === project.id) || { x: 0, y: 0, w: 3, h: 3 };
               const cardRef = useRef(null);
